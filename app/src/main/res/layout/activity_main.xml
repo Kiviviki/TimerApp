@@ -9,7 +9,7 @@
         android:id="@+id/textInput"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Syötä tekstiä"
+        android:hint="Kirjoita kohteen nimi..."
         android:layout_marginBottom="8dp" />
 
     <Button
@@ -25,16 +25,27 @@
         android:layout_weight="1"
         android:layout_marginTop="8dp" />
 
-    <!-- New TextView for showing names and times at the bottom -->
-    <TextView
-        android:id="@+id/timeDisplay"
+   <View
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Ajastin tiedot"
-        android:textSize="16sp"
+        android:layout_height="1dp"
+        android:background="@color/white" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="0.8"
         android:layout_marginTop="16dp"
-        android:gravity="start"
-        android:padding="8dp"
-        android:paddingBottom="8dp"
-        android:layout_marginBottom="8dp"/>
+        android:layout_marginBottom="8dp">
+
+        <TextView
+            android:id="@+id/timeDisplay"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="--Kohteiden tiedot ilmestyy tähän--"
+            android:textSize="16sp"
+            android:gravity="start"
+            android:padding="8dp"
+            android:paddingBottom="8dp" />
+    </ScrollView>
+
 </LinearLayout>

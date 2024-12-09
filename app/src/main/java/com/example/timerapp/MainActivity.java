@@ -60,8 +60,11 @@ public class MainActivity extends AppCompatActivity {
                 itemAdapter.notifyDataSetChanged();
                 textInput.setText("");
                 updateTimeDisplay();
+            } else if (text.isEmpty()) {
+                Toast.makeText(this, "Syötä jotain järkevää.", Toast.LENGTH_SHORT).show();
             } else {
-                Toast.makeText(this, "Enter valid text", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Tämänniminen kohde löytyy jo", Toast.LENGTH_SHORT).show();
+
             }
         });
     }
@@ -102,38 +105,93 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void deleteItem(String itemName) {
-        items.remove(itemName);
-        timers.remove(itemName);
-        isRunning.remove(itemName);
-        handlers.remove(itemName);
-        itemAdapter.notifyDataSetChanged();
-        updateTimeDisplay();
+        // Show confirmation dialog before deleting
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Kohteen poisto");
+        builder.setMessage("Haluatko varmasti poistaa \"" + itemName + "\"?");
+
+        // "Yes" Button
+        builder.setPositiveButton("Kyllä", (dialog, which) -> {
+            // Stop the timer if it's running
+            if (isRunning.get(itemName)) {
+                handlers.get(itemName).removeCallbacksAndMessages(null); // Stop the Handler tasks
+                isRunning.put(itemName, false); // Mark as stopped
+            }
+
+            // Remove the item from all data structures
+            items.remove(itemName);
+            timers.remove(itemName);
+            isRunning.remove(itemName);
+            handlers.remove(itemName);
+
+            // Notify adapter and update display
+            itemAdapter.notifyDataSetChanged();
+            updateTimeDisplay();
+
+            Toast.makeText(this, "\"" + itemName + "\" deleted successfully.", Toast.LENGTH_SHORT).show();
+        });
+
+        // "No" Button
+        builder.setNegativeButton("Ei", (dialog, which) -> {
+            // Simply dismiss the dialog
+            dialog.dismiss();
+        });
+
+        // Show the dialog
+        builder.show();
     }
 
+
+
     public void editItem(String itemName) {
-        // Edit the name or update start/end time
-        // For simplicity, let's assume we can change the name here
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Edit Item Name");
+        builder.setTitle("Muokkaa kohteen nimeä");
 
         final EditText input = new EditText(this);
         input.setText(itemName);
         builder.setView(input);
 
-        builder.setPositiveButton("Save", (dialog, which) -> {
+        builder.setPositiveButton("Tallenna", (dialog, which) -> {
             String newName = input.getText().toString().trim();
             if (!newName.isEmpty() && !items.contains(newName)) {
-                items.set(items.indexOf(itemName), newName);
+                boolean wasRunning = isRunning.get(itemName);
+
+                // Stop the timer if it's running
+                if (wasRunning) {
+                    handlers.get(itemName).removeCallbacksAndMessages(null);
+                    isRunning.put(itemName, false);
+                }
+
+                // Update the name in `items`
+                int index = items.indexOf(itemName);
+                items.set(index, newName);
+
+                // Update `timers` map
                 TimeDetails details = timers.remove(itemName);
                 timers.put(newName, details);
+
+                // Update `isRunning` map
+                Boolean runningState = isRunning.remove(itemName);
+                isRunning.put(newName, runningState);
+
+                // Update `handlers` map
+                Handler handler = handlers.remove(itemName);
+                handlers.put(newName, handler);
+
                 itemAdapter.notifyDataSetChanged();
                 updateTimeDisplay();
+
+                // Restart the timer if it was running
+                if (wasRunning) {
+                    isRunning.put(newName, true);
+                    startTimer(newName); // Restart the timer with the new name
+                }
             } else {
-                Toast.makeText(this, "Enter valid name", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Tämänniminen kohde löytyy jo.", Toast.LENGTH_SHORT).show();
             }
         });
 
-        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
+        builder.setNegativeButton("Hylkää", (dialog, which) -> dialog.cancel());
 
         builder.show();
     }

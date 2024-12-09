@@ -39,6 +39,9 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ItemViewHolder
         // Display only the item name without time details
         holder.nameTextView.setText(itemName);
 
+        // Set button text based on the current timer state
+        holder.startStopButton.setText(isRunning.get(itemName) ? "Pysäytä" : "Aloita");
+
         holder.deleteButton.setOnClickListener(v -> {
             mainActivity.deleteItem(itemName);
         });
@@ -49,6 +52,10 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ItemViewHolder
 
         holder.startStopButton.setOnClickListener(v -> {
             mainActivity.toggleTimer(itemName);
+
+            // Update button text after toggling
+            boolean timerState = isRunning.get(itemName); // Fetch the updated state
+            holder.startStopButton.setText(timerState ? "Pysäytä" : "Aloita");
         });
     }
 
