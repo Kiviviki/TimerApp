@@ -22,9 +22,13 @@
    	android:id="@+id/saveButton"
    	android:layout_width="match_parent"
    	android:layout_height="wrap_content"
-   	android:text="Tallenna"
-    	android:layout_marginTop="8dp" />
+   	android:text="Tallenna" />
 
+    <Button
+    	android:id="@+id/clearDataButton"
+    	android:layout_width="match_parent"
+    	android:layout_height="wrap_content"
+    	android:text="Aloita alusta" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerView"

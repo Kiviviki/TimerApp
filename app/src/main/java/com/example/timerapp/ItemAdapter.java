@@ -56,9 +56,6 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ItemViewHolder
             // Update button text after toggling
             boolean timerState = isRunning.get(itemName); // Fetch the updated state
             holder.startStopButton.setText(timerState ? "Pysäytä" : "Aloita");
-
-            // Save data to file
-            mainActivity.saveTimeDisplayToFile();
         });
     }
 
