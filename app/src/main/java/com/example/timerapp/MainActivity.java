@@ -1,6 +1,9 @@
 package com.example.timerapp;
 
 import android.app.AlertDialog;
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler; // Correct import
 import android.text.Spannable;
@@ -18,6 +21,13 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+
+import android.content.Context;
+import android.os.Environment;
+
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -60,15 +70,14 @@ public class MainActivity extends AppCompatActivity {
                 itemAdapter.notifyDataSetChanged();
                 textInput.setText("");
                 updateTimeDisplay();
+                saveTimeDisplayToFile(); // Save data on button press
             } else if (text.isEmpty()) {
                 Toast.makeText(this, "Syötä jotain järkevää.", Toast.LENGTH_SHORT).show();
             } else {
                 Toast.makeText(this, "Tämänniminen kohde löytyy jo", Toast.LENGTH_SHORT).show();
-
             }
         });
     }
-
 
     public void toggleTimer(String itemName) {
         if (isRunning.get(itemName)) {
@@ -90,7 +99,6 @@ public class MainActivity extends AppCompatActivity {
         }
         updateTimeDisplay();
     }
-
 
     private void startTimer(String itemName) {
         Runnable runnable = new Runnable() {
@@ -140,8 +148,6 @@ public class MainActivity extends AppCompatActivity {
         // Show the dialog
         builder.show();
     }
-
-
 
     public void editItem(String itemName) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -228,5 +234,32 @@ public class MainActivity extends AppCompatActivity {
         timeDisplay.setText(displayText);
     }
 
+    // Function to save timeDisplay content to a file
+    public void saveTimeDisplayToFile() {
+        String content = timeDisplay.getText().toString();
+        String fileName = "timers_" + System.currentTimeMillis() + ".txt"; // Unique file name
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            // Request runtime permissions for Android 6.0+
+            if (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
+                return; // Exit and wait for user response
+            }
+        }
+
+        try {
+            File dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+            if (!dir.exists()) dir.mkdirs(); // Create directory if it doesn't exist
+
+            File file = new File(dir, fileName);
+            FileWriter writer = new FileWriter(file);
+            writer.write(content);
+            writer.close();
+
+            Toast.makeText(this, "Data saved to: " + file.getAbsolutePath(), Toast.LENGTH_LONG).show();
+        } catch (IOException e) {
+            e.printStackTrace();
+            Toast.makeText(this, "Failed to save data.", Toast.LENGTH_SHORT).show();
+        }
+    }
 }
