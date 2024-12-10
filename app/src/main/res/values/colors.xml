@@ -2,6 +2,8 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="startTimeColor">#FF5722</color>
-    <color name="endTimeColor">#4CAF50</color>
+    <color name="startTimeColor">#00C853</color>
+    <color name="endTimeColor">#D50000</color>
+    <color name="startTimeBgColor">#B2DFDB</color>
+    <color name="endTimeBgColor">#6750a4</color>
 </resources>

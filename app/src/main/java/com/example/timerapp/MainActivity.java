@@ -14,6 +14,7 @@ import android.provider.MediaStore;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
+import android.text.style.BackgroundColorSpan;
 import android.text.style.ForegroundColorSpan;
 import android.view.View;
 import android.widget.*;
@@ -235,25 +236,44 @@ public class MainActivity extends AppCompatActivity {
         for (String name : items) {
             TimeDetails timeDetails = timers.get(name);
 
-            // If startTime is null, show "00:00"
+            // If startTime or endTime is null, show "00:00"
             String startTime = (timeDetails.getStartTime() != null) ? dateFormat.format(timeDetails.getStartTime()) : "00:00";
             String endTime = (timeDetails.getEndTime() != null) ? dateFormat.format(timeDetails.getEndTime()) : "00:00";
 
-            // Create SpannableString to style the start time and end time with colors
-            SpannableString startTimeSpan = new SpannableString("Aloitus: " + startTime);
-            SpannableString endTimeSpan = new SpannableString("Lopetus: " + endTime);
+            // Add an indicator if the timer is running
+            String runningIndicator = isRunning.get(name) ? " ⏳" : "";
 
-            // Set custom colors for Start and End times using ContextCompat.getColor
-            startTimeSpan.setSpan(new ForegroundColorSpan(ContextCompat.getColor(this, R.color.startTimeColor)), 0, startTimeSpan.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-            endTimeSpan.setSpan(new ForegroundColorSpan(ContextCompat.getColor(this, R.color.endTimeColor)), 0, endTimeSpan.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            // Create SpannableString to style the times and other text
+            SpannableString startEndTimes = new SpannableString("Aloitus: " + startTime + " | Lopetus: " + endTime + runningIndicator);
 
-            // Append formatted text with colored start and end times to SpannableStringBuilder
-            displayText.append(name)
-                    .append(" - ")
-                    .append(startTimeSpan)   // Use colored start time
-                    .append(" | ")
-                    .append(endTimeSpan)     // Use colored end time
-                    .append("\n\n"); // Add extra newline for space between items
+            // Set custom colors for start and end times
+            // Coloring the start time "Aloitus"
+            startEndTimes.setSpan(
+                    new ForegroundColorSpan(ContextCompat.getColor(this, R.color.startTimeColor)),
+                    0, "Aloitus: ".length() + startTime.length(), // Only apply color to "Aloitus: <startTime>"
+                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+            );
+
+            // Coloring the end time "Lopetus"
+            startEndTimes.setSpan(
+                    new ForegroundColorSpan(ContextCompat.getColor(this, R.color.endTimeColor)),
+                    "Aloitus: ".length() + startTime.length() + 3, // Apply color only to "Lopetus: <endTime>"
+                    startEndTimes.length() - runningIndicator.length(), // Avoid applying color to runningIndicator
+                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+            );
+
+            // Create a text version of the white separator line for saving
+            SpannableString separatorLine = new SpannableString("────────────────────");
+            separatorLine.setSpan(
+                    new ForegroundColorSpan(ContextCompat.getColor(this, R.color.white)),
+                    0, separatorLine.length(),
+                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+            );
+
+            // Append the item name, start/end times, and separator to the final text
+            displayText.append(name).append("\n")               // Item name
+                    .append(startEndTimes).append("\n")      // Start and end times in the same row
+                    .append(separatorLine).append("\n");     // Separator line
         }
 
         // Set the text in the TextView with the final styled text
@@ -262,11 +282,47 @@ public class MainActivity extends AppCompatActivity {
 
     // Function to save timeDisplay content to a file
     public void saveTimeDisplayToFile() {
-        String dataToSave = timeDisplay.getText().toString();
+        StringBuilder dataToSave = new StringBuilder();
+        SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm");
+
+        for (String name : items) {
+            TimeDetails timeDetails = timers.get(name);
+
+            // Format start and end times
+            String startTime = (timeDetails.getStartTime() != null) ? dateFormat.format(timeDetails.getStartTime()) : "00:00";
+            String endTime = (timeDetails.getEndTime() != null) ? dateFormat.format(timeDetails.getEndTime()) : "00:00";
+
+            // Calculate duration in minutes and hours
+            long durationMinutes = 0;
+            double durationHours = 0.0;
+
+            if (timeDetails.getStartTime() != null && timeDetails.getEndTime() != null) {
+                long durationMillis = timeDetails.getEndTime().getTime() - timeDetails.getStartTime().getTime();
+                durationMinutes = Math.round(durationMillis / (1000.0 * 60)); // Round to nearest minute
+
+                // If durationMinutes is less than 1 minute, set it to 1
+                if (durationMinutes == 0 && durationMillis > 0) {
+                    durationMinutes = 1;
+                }
+
+                durationHours = Math.round((durationMinutes / 60.0) * 100.0) / 100.0; // Correctly rounded to 2 decimals
+            }
+
+            String runningIndicator = isRunning.get(name) ? " (Aika juoksee)" : "";
+
+            // Build the file content
+            dataToSave.append(name).append("\n")
+                    .append("Aloitus: ").append(startTime).append(runningIndicator).append("\n")
+                    .append("Lopetus: ").append(endTime).append("\n")
+                    .append("Kesto: ").append(durationMinutes).append(" minuuttia, ")
+                    .append(String.format("%.2f", durationHours)).append(" tuntia\n") // Ensure 2 decimal places
+                    .append("--------------------").append("\n");
+        }
+
         String fileName = "Lumityot " + new SimpleDateFormat("yyyy.MM.dd_HH.mm").format(new Date()) + ".txt";
 
         try {
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 ContentResolver resolver = getContentResolver();
                 ContentValues contentValues = new ContentValues();
                 contentValues.put(MediaStore.MediaColumns.DISPLAY_NAME, fileName);
@@ -276,7 +332,7 @@ public class MainActivity extends AppCompatActivity {
                 Uri fileUri = resolver.insert(MediaStore.Files.getContentUri("external"), contentValues);
                 if (fileUri != null) {
                     try (OutputStream outputStream = resolver.openOutputStream(fileUri)) {
-                        outputStream.write(dataToSave.getBytes());
+                        outputStream.write(dataToSave.toString().getBytes());
                         Toast.makeText(this, "Tallennettu kansioon Lataukset", Toast.LENGTH_SHORT).show();
                     }
                 }
@@ -285,7 +341,7 @@ public class MainActivity extends AppCompatActivity {
                 File file = new File(directory, fileName);
 
                 try (FileOutputStream outputStream = new FileOutputStream(file)) {
-                    outputStream.write(dataToSave.getBytes());
+                    outputStream.write(dataToSave.toString().getBytes());
                     Toast.makeText(this, "Tallennettu kansioon Lataukset", Toast.LENGTH_SHORT).show();
                 }
             }
@@ -294,6 +350,8 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(this, "Tietoja ei voitu tallentaa: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
+
+
 
     @Override
     protected void onPause() {
