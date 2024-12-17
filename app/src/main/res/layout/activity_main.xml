@@ -14,25 +14,40 @@
         android:hint="Kirjoita kohteen nimi..."
         android:minHeight="48dp" />
 
-    <Button
-        android:id="@+id/addButton"
+    <!-- Horizontal LinearLayout for buttons -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Lisää"
-        tools:ignore="VisualLintButtonSize" />
+        android:orientation="horizontal"
+        android:layout_marginBottom="8dp">
 
-    <Button
-   	android:id="@+id/saveButton"
-   	android:layout_width="match_parent"
-   	android:layout_height="wrap_content"
-   	android:text="Tallenna" />
+	<Button
+            android:id="@+id/addButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Lisää" />
 
-    <Button
-    	android:id="@+id/clearDataButton"
-    	android:layout_width="match_parent"
-    	android:layout_height="wrap_content"
-    	android:text="Aloita alusta"
-        tools:ignore="VisualLintButtonSize" />
+        <Button
+            android:id="@+id/saveButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Tallenna"
+            android:layout_marginStart="8dp" />
+
+        <Button
+            android:id="@+id/clearDataButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Aloita alusta"
+            android:layout_marginStart="8dp"
+            tools:ignore="VisualLintButtonSize" />
+    </LinearLayout>
+
+        <Button
+            android:id="@+id/importButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Tuo kohteet" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerView"
@@ -41,7 +56,7 @@
         android:layout_weight="1"
         android:layout_marginTop="8dp" />
 
-   <View
+    <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:background="@color/white" />

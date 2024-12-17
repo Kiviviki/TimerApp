@@ -1,11 +1,16 @@
 package com.example.timerapp;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Handler;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
+
 import androidx.recyclerview.widget.RecyclerView;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -36,31 +41,50 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ItemViewHolder
     public void onBindViewHolder(ItemViewHolder holder, int position) {
         String itemName = items.get(position);
 
-        // Display only the item name without time details
+        // Set address text to TextView
         holder.nameTextView.setText(itemName);
 
-        // Set button text based on the current timer state
+        // Set up a click listener to open Google Maps for this address
+        holder.nameTextView.setOnClickListener(v -> {
+            openAddressInGoogleMaps(itemName);
+        });
+
+        // Button setups (Start/Stop, Edit, Delete, etc.)
         holder.startStopButton.setText(isRunning.get(itemName) ? "Pysäytä" : "Aloita");
 
-        holder.deleteButton.setOnClickListener(v -> {
-            mainActivity.deleteItem(itemName);
-        });
-
-        holder.editButton.setOnClickListener(v -> {
-            mainActivity.editItem(itemName);
-        });
+        holder.deleteButton.setOnClickListener(v -> mainActivity.deleteItem(itemName));
+        holder.editButton.setOnClickListener(v -> mainActivity.editItem(itemName));
 
         holder.startStopButton.setOnClickListener(v -> {
             mainActivity.toggleTimer(itemName);
 
-            // Update button text after toggling
-            boolean timerState = isRunning.get(itemName); // Fetch the updated state
+            boolean timerState = isRunning.get(itemName);
             holder.startStopButton.setText(timerState ? "Pysäytä" : "Aloita");
         });
     }
 
+    private void openAddressInGoogleMaps(String itemText) {
+        try {
+            // Extract the address part by splitting at the first space or tab
+            String[] parts = itemText.split("\\s+", 2); // Split into [number, address]
+            String address = parts.length > 1 ? parts[1] : itemText; // Default to full text if split fails
+
+            // Create a geo URI with the extracted address
+            Uri geoUri = Uri.parse("geo:0,0?q=" + Uri.encode(address));
+
+            // Create an implicit intent to open Google Maps
+            Intent mapIntent = new Intent(Intent.ACTION_VIEW, geoUri);
+            mapIntent.setPackage("com.google.android.apps.maps");  // Target Google Maps app
+            mainActivity.startActivity(mapIntent);
+        } catch (Exception e) {
+            Log.e("GoogleMapsError", "Failed to open address in Google Maps", e);
+        }
+    }
+
+
     @Override
     public int getItemCount() {
+        Log.d("AdapterDebug", "Items count: " + items.size());
         return items.size();
     }
 

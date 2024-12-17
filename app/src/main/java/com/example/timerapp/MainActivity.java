@@ -4,37 +4,37 @@ import android.app.AlertDialog;
 import android.Manifest;
 import android.content.ContentResolver;
 import android.content.ContentValues;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler; // Correct import
+import android.os.Handler;
 import android.provider.MediaStore;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
-import android.text.style.BackgroundColorSpan;
 import android.text.style.ForegroundColorSpan;
-import android.view.View;
+import android.util.Log;
 import android.widget.*;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.core.content.ContextCompat;
-
+import java.io.BufferedReader;
 import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
-
-import android.content.Context;
 import android.os.Environment;
-
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 
 public class MainActivity extends AppCompatActivity {
@@ -46,22 +46,31 @@ public class MainActivity extends AppCompatActivity {
     private ArrayList<String> items;
     private HashMap<String, TimeDetails> timers;
     private HashMap<String, Boolean> isRunning;
-    private HashMap<String, Handler> handlers;  // Correct Handler type (android.os.Handler)
+    private HashMap<String, Handler> handlers;
     private ItemAdapter itemAdapter;
+    private ActivityResultLauncher<Intent> importFileLauncher;
+
+    private boolean hasImportedFile = false;  // Flag to check if file was just imported
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        importFileLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                        Uri fileUri = result.getData().getData();
+                        processImportedFile(fileUri);
+                    }
+                }
+        );
+
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-            // For API level 23 and higher
             if (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
                 requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
             }
-        } else {
-            // For API level 21-22, permissions are granted at install time
-            // No action needed
         }
 
         textInput = findViewById(R.id.textInput);
@@ -74,6 +83,9 @@ public class MainActivity extends AppCompatActivity {
 
         Button clearDataButton = findViewById(R.id.clearDataButton);
         clearDataButton.setOnClickListener(v -> resetData());
+
+        Button importButton = findViewById(R.id.importButton);
+        importButton.setOnClickListener(v -> launchFilePicker());
 
         items = new ArrayList<>();
         timers = new HashMap<>();
@@ -88,7 +100,7 @@ public class MainActivity extends AppCompatActivity {
             String text = textInput.getText().toString().trim();
             if (!text.isEmpty() && !items.contains(text)) {
                 items.add(text);
-                timers.put(text, new TimeDetails()); // Set start time as null initially
+                timers.put(text, new TimeDetails());
                 isRunning.put(text, false);
                 handlers.put(text, new Handler());
                 itemAdapter.notifyDataSetChanged();
@@ -113,9 +125,8 @@ public class MainActivity extends AppCompatActivity {
                 isRunning.put(itemName, true);
                 TimeDetails timeDetails = timers.get(itemName);
 
-                // Set the start time to current time when starting the timer
                 if (timeDetails.getStartTime() == null) {
-                    timeDetails.setStartTime(new Date()); // Set current time when starting
+                    timeDetails.setStartTime(new Date());
                 }
 
                 startTimer(itemName);
@@ -132,7 +143,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void run() {
                 if (isRunning.get(itemName)) {
-                    handlers.get(itemName).postDelayed(this, 1000); // Repeat the task every 1 second
+                    handlers.get(itemName).postDelayed(this, 1000);
                 }
             }
         };
@@ -140,39 +151,31 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void deleteItem(String itemName) {
-        // Show confirmation dialog before deleting
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Kohteen poisto");
         builder.setMessage("Haluatko varmasti poistaa \"" + itemName + "\"?");
 
-        // "Yes" Button
         builder.setPositiveButton("Kyllä", (dialog, which) -> {
-            // Stop the timer if it's running
             if (isRunning.get(itemName)) {
                 handlers.get(itemName).removeCallbacksAndMessages(null); // Stop the Handler tasks
                 isRunning.put(itemName, false); // Mark as stopped
             }
 
-            // Remove the item from all data structures
             items.remove(itemName);
             timers.remove(itemName);
             isRunning.remove(itemName);
             handlers.remove(itemName);
 
-            // Notify adapter and update display
             itemAdapter.notifyDataSetChanged();
             updateTimeDisplay();
 
             Toast.makeText(this, "\"" + itemName + "\" deleted successfully.", Toast.LENGTH_SHORT).show();
         });
 
-        // "No" Button
         builder.setNegativeButton("Ei", (dialog, which) -> {
-            // Simply dismiss the dialog
             dialog.dismiss();
         });
 
-        // Show the dialog
         builder.show();
     }
 
@@ -189,35 +192,29 @@ public class MainActivity extends AppCompatActivity {
             if (!newName.isEmpty() && !items.contains(newName)) {
                 boolean wasRunning = isRunning.get(itemName);
 
-                // Stop the timer if it's running
                 if (wasRunning) {
                     handlers.get(itemName).removeCallbacksAndMessages(null);
-                    isRunning.put(itemName, false);
+                    isRunning.put(itemName, true);
                 }
 
-                // Update the name in `items`
                 int index = items.indexOf(itemName);
                 items.set(index, newName);
 
-                // Update `timers` map
                 TimeDetails details = timers.remove(itemName);
                 timers.put(newName, details);
 
-                // Update `isRunning` map
                 Boolean runningState = isRunning.remove(itemName);
                 isRunning.put(newName, runningState);
 
-                // Update `handlers` map
                 Handler handler = handlers.remove(itemName);
                 handlers.put(newName, handler);
 
                 itemAdapter.notifyDataSetChanged();
                 updateTimeDisplay();
 
-                // Restart the timer if it was running
                 if (wasRunning) {
                     isRunning.put(newName, true);
-                    startTimer(newName); // Restart the timer with the new name
+                    startTimer(newName);
                 }
             } else {
                 Toast.makeText(this, "Tämänniminen kohde löytyy jo.", Toast.LENGTH_SHORT).show();
@@ -236,63 +233,13 @@ public class MainActivity extends AppCompatActivity {
         for (String name : items) {
             TimeDetails timeDetails = timers.get(name);
 
-            // If startTime or endTime is null, show "00:00"
+            // Extract start and end times as strings
             String startTime = (timeDetails.getStartTime() != null) ? dateFormat.format(timeDetails.getStartTime()) : "00:00";
             String endTime = (timeDetails.getEndTime() != null) ? dateFormat.format(timeDetails.getEndTime()) : "00:00";
 
-            // Add an indicator if the timer is running
-            String runningIndicator = isRunning.get(name) ? " ⏳" : "";
+            boolean isTaskRunning = isRunning.get(name); // Flag for running tasks
 
-            // Create SpannableString to style the times and other text
-            SpannableString startEndTimes = new SpannableString("Aloitus: " + startTime + " | Lopetus: " + endTime + runningIndicator);
-
-            // Set custom colors for start and end times
-            // Coloring the start time "Aloitus"
-            startEndTimes.setSpan(
-                    new ForegroundColorSpan(ContextCompat.getColor(this, R.color.startTimeColor)),
-                    0, "Aloitus: ".length() + startTime.length(), // Only apply color to "Aloitus: <startTime>"
-                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
-            );
-
-            // Coloring the end time "Lopetus"
-            startEndTimes.setSpan(
-                    new ForegroundColorSpan(ContextCompat.getColor(this, R.color.endTimeColor)),
-                    "Aloitus: ".length() + startTime.length() + 3, // Apply color only to "Lopetus: <endTime>"
-                    startEndTimes.length() - runningIndicator.length(), // Avoid applying color to runningIndicator
-                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
-            );
-
-            // Create a text version of the white separator line for saving
-            SpannableString separatorLine = new SpannableString("────────────────────");
-            separatorLine.setSpan(
-                    new ForegroundColorSpan(ContextCompat.getColor(this, R.color.white)),
-                    0, separatorLine.length(),
-                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
-            );
-
-            // Append the item name, start/end times, and separator to the final text
-            displayText.append(name).append("\n")               // Item name
-                    .append(startEndTimes).append("\n")      // Start and end times in the same row
-                    .append(separatorLine).append("\n");     // Separator line
-        }
-
-        // Set the text in the TextView with the final styled text
-        timeDisplay.setText(displayText);
-    }
-
-    // Function to save timeDisplay content to a file
-    public void saveTimeDisplayToFile() {
-        StringBuilder dataToSave = new StringBuilder();
-        SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm");
-
-        for (String name : items) {
-            TimeDetails timeDetails = timers.get(name);
-
-            // Format start and end times
-            String startTime = (timeDetails.getStartTime() != null) ? dateFormat.format(timeDetails.getStartTime()) : "00:00";
-            String endTime = (timeDetails.getEndTime() != null) ? dateFormat.format(timeDetails.getEndTime()) : "00:00";
-
-            // Calculate duration in minutes and hours
+            // Calculate duration
             long durationMinutes = 0;
             double durationHours = 0.0;
 
@@ -300,7 +247,72 @@ public class MainActivity extends AppCompatActivity {
                 long durationMillis = timeDetails.getEndTime().getTime() - timeDetails.getStartTime().getTime();
                 durationMinutes = Math.round(durationMillis / (1000.0 * 60)); // Round to nearest minute
 
-                // If durationMinutes is less than 1 minute, set it to 1
+                if (durationMinutes == 0 && durationMillis > 0) {
+                    durationMinutes = 1;
+                }
+
+                durationHours = Math.round((durationMinutes / 60.0) * 100.0) / 100.0; // Rounded to 2 decimals
+            }
+
+            // Start and End Times (Styled)
+            SpannableString startEndTimes = new SpannableString("Aloitus: " + startTime + " | Lopetus: " + endTime);
+
+            startEndTimes.setSpan(
+                    new ForegroundColorSpan(ContextCompat.getColor(this, R.color.startTimeColor)),
+                    0, "Aloitus: ".length() + startTime.length(),
+                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+            );
+
+            startEndTimes.setSpan(
+                    new ForegroundColorSpan(ContextCompat.getColor(this, R.color.endTimeColor)),
+                    "Aloitus: ".length() + startTime.length() + 3,
+                    startEndTimes.length(),
+                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+            );
+
+            // Running Indicator (If Task is Running)
+            SpannableString runningIndicator = new SpannableString(isTaskRunning ? " ⏳" : "");
+
+            // Create duration string
+            String durationText = "Kesto: " + durationMinutes + " minuuttia, " + String.format("%.2f", durationHours) + " tuntia";
+
+            // Separator Line
+            SpannableString separatorLine = new SpannableString("────────────────────");
+            separatorLine.setSpan(
+                    new ForegroundColorSpan(ContextCompat.getColor(this, R.color.white)),
+                    0, separatorLine.length(),
+                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+            );
+
+            // Append all parts to display text
+            displayText.append(name).append("\n")
+                    .append(startEndTimes).append(runningIndicator).append("\n") // Ensures runningIndicator shows properly
+                    .append(durationText).append("\n")
+                    .append(separatorLine).append("\n");
+        }
+
+        timeDisplay.setText(displayText);
+    }
+
+
+
+    public void saveTimeDisplayToFile() {
+        StringBuilder dataToSave = new StringBuilder();
+        SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm");
+
+        for (String name : items) {
+            TimeDetails timeDetails = timers.get(name);
+
+            String startTime = (timeDetails.getStartTime() != null) ? dateFormat.format(timeDetails.getStartTime()) : "00:00";
+            String endTime = (timeDetails.getEndTime() != null) ? dateFormat.format(timeDetails.getEndTime()) : "00:00";
+
+            long durationMinutes = 0;
+            double durationHours = 0.0;
+
+            if (timeDetails.getStartTime() != null && timeDetails.getEndTime() != null) {
+                long durationMillis = timeDetails.getEndTime().getTime() - timeDetails.getStartTime().getTime();
+                durationMinutes = Math.round(durationMillis / (1000.0 * 60)); // Round to nearest minute
+
                 if (durationMinutes == 0 && durationMillis > 0) {
                     durationMinutes = 1;
                 }
@@ -310,7 +322,6 @@ public class MainActivity extends AppCompatActivity {
 
             String runningIndicator = isRunning.get(name) ? " (Aika juoksee)" : "";
 
-            // Build the file content
             dataToSave.append(name).append("\n")
                     .append("Aloitus: ").append(startTime).append(runningIndicator).append("\n")
                     .append("Lopetus: ").append(endTime).append("\n")
@@ -351,31 +362,25 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-
-
     @Override
     protected void onPause() {
+        hasImportedFile = false;
         super.onPause();
 
-        // Get the SharedPreferences editor to save data
         SharedPreferences sharedPreferences = getSharedPreferences("TimerAppData", MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPreferences.edit();
 
-        // Save items list to SharedPreferences
         editor.putInt("items_count", items.size());
         for (int i = 0; i < items.size(); i++) {
             editor.putString("item_" + i, items.get(i));
         }
 
-        // Save timer data (for example, you could save the start and end times of each timer)
         for (String itemName : items) {
             TimeDetails timeDetails = timers.get(itemName);
             editor.putLong(itemName + "_startTime", timeDetails.getStartTime() != null ? timeDetails.getStartTime().getTime() : -1);
             editor.putLong(itemName + "_endTime", timeDetails.getEndTime() != null ? timeDetails.getEndTime().getTime() : -1);
-            editor.putBoolean(itemName + "_isRunning", isRunning.get(itemName));  // Save running state
+            editor.putBoolean(itemName + "_isRunning", isRunning.get(itemName));
         }
-
-        // Commit changes to SharedPreferences
         editor.apply();
     }
 
@@ -386,24 +391,28 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void loadData() {
+        // Skip loading if a file has just been imported
+        if (hasImportedFile) {
+            Log.d("LoadData", "Skipping load: data was just imported.");
+            return;
+        }
+
         SharedPreferences sharedPreferences = getSharedPreferences("TimerAppData", MODE_PRIVATE);
 
-        // Load items list from SharedPreferences
         int itemCount = sharedPreferences.getInt("items_count", 0);
         items.clear();
         timers.clear();
         isRunning.clear();
-        handlers.clear(); // Ensure handlers are cleared before reloading
+        handlers.clear();
 
         for (int i = 0; i < itemCount; i++) {
             String itemName = sharedPreferences.getString("item_" + i, null);
             if (itemName != null) {
                 items.add(itemName);
-                timers.put(itemName, new TimeDetails()); // Initialize new TimeDetails object for each item
+                timers.put(itemName, new TimeDetails());
                 isRunning.put(itemName, sharedPreferences.getBoolean(itemName + "_isRunning", false));
-                handlers.put(itemName, new Handler()); // Reinitialize handler for each item
+                handlers.put(itemName, new Handler());
 
-                // Retrieve and set start and end times for each item
                 long startTimeMillis = sharedPreferences.getLong(itemName + "_startTime", -1);
                 long endTimeMillis = sharedPreferences.getLong(itemName + "_endTime", -1);
 
@@ -417,58 +426,43 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        // Notify the adapter to update the UI
         itemAdapter.notifyDataSetChanged();
         updateTimeDisplay();
     }
 
-
     public void resetData() {
-        // Show confirmation dialog before clearing all data
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Aloita alusta");
         builder.setMessage("Haluatko varmasti aloittaa alusta ja poistaa kaikki tiedot?");
 
-        // "Yes" Button
         builder.setPositiveButton("Kyllä", (dialog, which) -> {
-            // Stop any running timers and clear handlers
             stopAllTimers();
 
-            // Clear all data (internal data and SharedPreferences)
             clearAllData();
 
-            // Notify the adapter after the data is cleared
-            itemAdapter.notifyDataSetChanged();  // Notify the adapter after clearing data
+            itemAdapter.notifyDataSetChanged();
 
-            // Show success message
             Toast.makeText(this, "Kaikki tiedot poistettu ja sovellus aloitettu alusta.", Toast.LENGTH_SHORT).show();
         });
 
-        // "No" Button
         builder.setNegativeButton("Ei", (dialog, which) -> {
-            // Simply dismiss the dialog
             dialog.dismiss();
         });
 
-        // Show the dialog
         builder.show();
     }
 
     private void stopAllTimers() {
-        // Stop all timers and remove handlers
         for (String itemName : items) {
             if (isRunning.get(itemName)) {
-                handlers.get(itemName).removeCallbacksAndMessages(null); // Stop the Handler tasks
-                isRunning.put(itemName, false); // Mark as stopped
+                handlers.get(itemName).removeCallbacksAndMessages(null);
+                isRunning.put(itemName, false);
             }
         }
     }
 
     public void clearAllData() {
-        // Clear SharedPreferences
         clearSharedPreferences();
-
-        // Reset internal data
         clearInternalData();
     }
 
@@ -476,7 +470,6 @@ public class MainActivity extends AppCompatActivity {
         SharedPreferences sharedPreferences = getSharedPreferences("TimerAppData", MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPreferences.edit();
 
-        // Clear all stored data in SharedPreferences
         editor.clear();
         editor.apply();
 
@@ -484,19 +477,51 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void clearInternalData() {
-        // Clear the list and maps
         items.clear();
         timers.clear();
         isRunning.clear();
         handlers.clear();
 
-        // Reset the time display (clear the time display area)
         updateTimeDisplay();
-
-        // If necessary, notify the adapter to update the UI
-        // itemAdapter.notifyDataSetChanged();
 
         Toast.makeText(this, "Internal data cleared!", Toast.LENGTH_SHORT).show();
     }
 
+    private void launchFilePicker() {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("text/plain");
+        importFileLauncher.launch(intent);
+    }
+
+    private void processImportedFile(Uri fileUri) {
+        try {
+            items.clear();
+            InputStream inputStream = getContentResolver().openInputStream(fileUri);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String text = line.trim();
+                if (!text.isEmpty() && !items.contains(text)) {
+                    items.add(text);
+                    timers.put(text, new TimeDetails());
+                    isRunning.put(text, false);
+                    handlers.put(text, new Handler());
+                    updateTimeDisplay();
+                }
+            }
+
+            // Notify adapter
+            runOnUiThread(() -> {
+                itemAdapter.notifyDataSetChanged();
+            });
+
+            // Mark the flag as "imported"
+            hasImportedFile = true;
+
+        } catch (Exception e) {
+            Log.e("ImportError", "Error importing file", e);
+        }
+    }
 }
