@@ -4,7 +4,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="16dp"
+    tools:context=".MainActivity">
 
     <EditText
         android:id="@+id/textInput"
@@ -14,14 +15,13 @@
         android:hint="Kirjoita kohteen nimi..."
         android:minHeight="48dp" />
 
-    <!-- Horizontal LinearLayout for buttons -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:layout_marginBottom="8dp">
 
-	<Button
+        <Button
             android:id="@+id/addButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -43,11 +43,11 @@
             tools:ignore="VisualLintButtonSize" />
     </LinearLayout>
 
-        <Button
-            android:id="@+id/importButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Tuo kohteet" />
+    <Button
+        android:id="@+id/importButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Tuo kohteet" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerView"
@@ -56,17 +56,21 @@
         android:layout_weight="1"
         android:layout_marginTop="8dp" />
 
+
     <View
+        android:id="@+id/resizeHandle"
         android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="@color/white" />
+        android:layout_height="30dp"
+        android:background="@color/grey"
+        android:layout_marginTop="8dp" />
+
 
     <ScrollView
+        android:id="@+id/scrollView"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="0.8"
-        android:layout_marginTop="16dp"
-        android:layout_marginBottom="8dp">
+        android:layout_height="100dp"
+        android:fillViewport="true"
+        android:background="@color/scrollView">
 
         <TextView
             android:id="@+id/timeDisplay"
@@ -75,8 +79,7 @@
             android:text="--Kohteiden tiedot ilmestyy tähän--"
             android:textSize="16sp"
             android:gravity="start"
-            android:padding="8dp"
-            android:paddingBottom="8dp" />
+            android:padding="8dp" />
     </ScrollView>
 
 </LinearLayout>

@@ -6,4 +6,8 @@
     <color name="endTimeColor">#D50000</color>
     <color name="startTimeBgColor">#B2DFDB</color>
     <color name="endTimeBgColor">#6750a4</color>
+    <color name="grey">#b3b3e6</color>
+    <color name="activeResizeColor">#5353c6</color>
+    <color name="defaultColor">#b3b3e6</color>
+    <color name="scrollView">#050a14</color>
 </resources>

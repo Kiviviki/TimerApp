@@ -1,5 +1,6 @@
 package com.example.timerapp;
 
+import android.animation.ValueAnimator;
 import android.app.AlertDialog;
 import android.Manifest;
 import android.content.ContentResolver;
@@ -17,6 +18,11 @@ import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
 import android.text.style.ForegroundColorSpan;
 import android.util.Log;
+import android.view.MotionEvent;
+import android.view.VelocityTracker;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.animation.DecelerateInterpolator;
 import android.widget.*;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -77,6 +83,50 @@ public class MainActivity extends AppCompatActivity {
         addButton = findViewById(R.id.addButton);
         recyclerView = findViewById(R.id.recyclerView);
         timeDisplay = findViewById(R.id.timeDisplay);
+        ScrollView scrollView = findViewById(R.id.scrollView);
+
+        View resizeHandle = findViewById(R.id.resizeHandle);
+
+        resizeHandle.setOnTouchListener(new View.OnTouchListener() {
+            private float initialY;
+            private int initialHeight;
+
+            // Define height boundaries
+            private static final int COLLAPSED_HEIGHT = 0; // Minimum height
+            private static final int EXPANDED_HEIGHT = 800;  // Maximum height
+
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        initialY = event.getRawY();
+                        initialHeight = scrollView.getLayoutParams().height;
+
+                        resizeHandle.setBackgroundColor(ContextCompat.getColor(MainActivity.this, R.color.activeResizeColor));
+                        return true;
+
+                    case MotionEvent.ACTION_MOVE:
+                        // Calculate height change based on drag
+                        float deltaY = initialY - event.getRawY();
+                        int newHeight = (int) (initialHeight + deltaY);
+
+                        // Constrain the height within boundaries
+                        newHeight = Math.max(COLLAPSED_HEIGHT, Math.min(EXPANDED_HEIGHT, newHeight));
+
+                        // Update the height
+                        scrollView.getLayoutParams().height = newHeight;
+                        scrollView.requestLayout();
+                        return true;
+
+                    case MotionEvent.ACTION_UP:
+                        resizeHandle.setBackgroundColor(ContextCompat.getColor(MainActivity.this, R.color.defaultColor));
+                        return true;
+                }
+                return false;
+            }
+        });
+
+
 
         Button saveButton = findViewById(R.id.saveButton);
         saveButton.setOnClickListener(v -> saveTimeDisplayToFile());
@@ -113,6 +163,10 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
+
+
+
+
 
     public void toggleTimer(String itemName) {
         if (isRunning.containsKey(itemName) && timers.containsKey(itemName)) {
@@ -512,12 +566,10 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
 
-            // Notify adapter
             runOnUiThread(() -> {
                 itemAdapter.notifyDataSetChanged();
             });
 
-            // Mark the flag as "imported"
             hasImportedFile = true;
 
         } catch (Exception e) {
