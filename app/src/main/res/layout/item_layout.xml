@@ -3,6 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
+    android:background="@color/itemBackground"
     android:padding="8dp">
 
     <TextView
@@ -12,8 +13,8 @@
         android:layout_weight="1"
         android:text="Timer Item"
         android:textSize="16sp"
-        android:background="#263238"
-        android:textColor="#FFFFFF"
+        android:background="@color/grey"
+        android:textColor="@color/textColorPrimary"
         android:padding="8dp"
         android:clickable="true"
         android:focusable="true" 
@@ -29,6 +30,8 @@
         android:id="@+id/startStopButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+    android:backgroundTint="@color/buttonColorPrimary"
+    android:textColor="@color/buttonTextColor"
         android:text="Aloita"
 	android:layout_marginEnd="8dp" />
 
@@ -36,6 +39,8 @@
         android:id="@+id/editButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+    android:backgroundTint="@color/buttonColorPrimary"
+    android:textColor="@color/buttonTextColor"
         android:text="Muokkaa"
 	android:layout_marginEnd="8dp" />
 
@@ -43,6 +48,8 @@
         android:id="@+id/deleteButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+    android:backgroundTint="@color/buttonColorPrimary"
+    android:textColor="@color/buttonTextColor"
         android:text="Poista"
 	android:layout_marginEnd="8dp" />
 

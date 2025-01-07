@@ -25,29 +25,40 @@
             android:id="@+id/addButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:backgroundTint="@color/buttonColorPrimary"
+            android:textColor="@color/buttonTextColor"
             android:text="Lisää" />
 
         <Button
             android:id="@+id/saveButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Tallenna"
+            android:backgroundTint="@color/buttonColorPrimary"
+            android:textColor="@color/buttonTextColor"
+            android:text="Luo"
             android:layout_marginStart="8dp" />
 
         <Button
             android:id="@+id/clearDataButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Aloita alusta"
+            android:backgroundTint="@color/buttonColorPrimary"
+            android:textColor="@color/buttonTextColor"
+            android:text="Tyhjennä"
             android:layout_marginStart="8dp"
             tools:ignore="VisualLintButtonSize" />
+
+        <Button
+            android:id="@+id/importButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:backgroundTint="@color/buttonColorPrimary"
+            android:textColor="@color/buttonTextColor"
+            android:text="Tuo"
+            android:layout_marginStart="8dp"/>
     </LinearLayout>
 
-    <Button
-        android:id="@+id/importButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Tuo kohteet" />
+
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerView"
@@ -57,18 +68,19 @@
         android:layout_marginTop="8dp" />
 
 
-    <View
-        android:id="@+id/resizeHandle"
-        android:layout_width="match_parent"
-        android:layout_height="30dp"
-        android:background="@color/grey"
-        android:layout_marginTop="8dp" />
+<View
+    android:id="@+id/resizeHandle"
+    android:layout_width="match_parent"
+    android:layout_height="40dp"
+    android:background="@color/defaultColor"
+    android:layout_marginTop="8dp" />
+
 
 
     <ScrollView
         android:id="@+id/scrollView"
         android:layout_width="match_parent"
-        android:layout_height="100dp"
+        android:layout_height="0dp"
         android:fillViewport="true"
         android:background="@color/scrollView">
 
@@ -78,6 +90,7 @@
             android:layout_height="wrap_content"
             android:text="--Kohteiden tiedot ilmestyy tähän--"
             android:textSize="16sp"
+            android:textColor="@color/textColorSecondary"
             android:gravity="start"
             android:padding="8dp" />
     </ScrollView>

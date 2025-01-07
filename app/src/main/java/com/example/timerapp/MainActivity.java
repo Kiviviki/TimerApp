@@ -1,6 +1,5 @@
 package com.example.timerapp;
 
-import android.animation.ValueAnimator;
 import android.app.AlertDialog;
 import android.Manifest;
 import android.content.ContentResolver;
@@ -21,8 +20,6 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.VelocityTracker;
 import android.view.View;
-import android.view.ViewGroup;
-import android.view.animation.DecelerateInterpolator;
 import android.widget.*;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -56,7 +53,7 @@ public class MainActivity extends AppCompatActivity {
     private ItemAdapter itemAdapter;
     private ActivityResultLauncher<Intent> importFileLauncher;
 
-    private boolean hasImportedFile = false;  // Flag to check if file was just imported
+    private boolean hasImportedFile = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -88,43 +85,148 @@ public class MainActivity extends AppCompatActivity {
         View resizeHandle = findViewById(R.id.resizeHandle);
 
         resizeHandle.setOnTouchListener(new View.OnTouchListener() {
-            private float initialY;
+            private float lastY; // Tracks the last Y position
             private int initialHeight;
+            private float lastHeight; // For smoothing
+            private VelocityTracker velocityTracker;
+            private float totalDeltaY = 0; // Tracks net motion
+            private boolean isMovingUp; // Tracks the last movement direction
 
-            // Define height boundaries
-            private static final int COLLAPSED_HEIGHT = 0; // Minimum height
-            private static final int EXPANDED_HEIGHT = 800;  // Maximum height
+            private static final int COLLAPSED_HEIGHT = 0;
+            private static final int EXPANDED_HEIGHT = 1800;
+
+            private static final float SMOOTHING_FACTOR = 0.2f;
+            private static final float FLING_DECELERATION = 0.6f;
+
+            private boolean isFlinging = false;
+            private float flingVelocity = 0;
 
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
-                        initialY = event.getRawY();
-                        initialHeight = scrollView.getLayoutParams().height;
+                        isFlinging = false;
 
-                        resizeHandle.setBackgroundColor(ContextCompat.getColor(MainActivity.this, R.color.activeResizeColor));
+                        lastY = event.getRawY();
+                        initialHeight = scrollView.getLayoutParams().height;
+                        lastHeight = initialHeight;
+                        totalDeltaY = 0; // Reset the cumulative delta
+
+                        isMovingUp = false; // Reset direction tracking
+
+                        if (velocityTracker == null) {
+                            velocityTracker = VelocityTracker.obtain();
+                        } else {
+                            velocityTracker.clear();
+                        }
+                        velocityTracker.addMovement(event);
+
+                        // Change to the active resize color
+                        resizeHandle.setBackgroundColor(
+                                ContextCompat.getColor(MainActivity.this, R.color.activeResizeColor)
+                        );
                         return true;
 
                     case MotionEvent.ACTION_MOVE:
-                        // Calculate height change based on drag
-                        float deltaY = initialY - event.getRawY();
-                        int newHeight = (int) (initialHeight + deltaY);
+                        velocityTracker.addMovement(event);
 
-                        // Constrain the height within boundaries
-                        newHeight = Math.max(COLLAPSED_HEIGHT, Math.min(EXPANDED_HEIGHT, newHeight));
+                        float currentY = event.getRawY();
+                        float deltaY = lastY - currentY; // Delta for this move event
+                        totalDeltaY += deltaY; // Accumulate total motion
 
-                        // Update the height
-                        scrollView.getLayoutParams().height = newHeight;
+                        // Detect and handle direction change
+                        boolean newDirection = (deltaY > 0) != isMovingUp;
+                        if (newDirection) {
+                            // Reset reference points when direction changes
+                            isMovingUp = deltaY > 0;
+                            totalDeltaY = 0; // Reset accumulated motion
+                            lastY = currentY;
+                            initialHeight = (int) lastHeight; // Adjust starting height for smooth motion
+                        }
+
+                        // Calculate target height
+                        int targetHeight = (int) (initialHeight + totalDeltaY);
+                        targetHeight = Math.max(COLLAPSED_HEIGHT, Math.min(EXPANDED_HEIGHT, targetHeight));
+
+                        // Apply smoothing
+                        lastHeight = lastHeight + (targetHeight - lastHeight) * SMOOTHING_FACTOR;
+                        scrollView.getLayoutParams().height = (int) lastHeight;
                         scrollView.requestLayout();
+
+                        lastY = currentY; // Update last position
+
+                        // Change to the highlight color during a move
+                        resizeHandle.setBackgroundColor(
+                                ContextCompat.getColor(MainActivity.this, R.color.highlightMoveColor)
+                        );
                         return true;
 
                     case MotionEvent.ACTION_UP:
-                        resizeHandle.setBackgroundColor(ContextCompat.getColor(MainActivity.this, R.color.defaultColor));
+                        resizeHandle.setBackgroundColor(
+                                ContextCompat.getColor(MainActivity.this, R.color.defaultColor)
+                        );
+
+                        velocityTracker.addMovement(event);
+                        velocityTracker.computeCurrentVelocity(1000);
+                        flingVelocity = velocityTracker.getYVelocity();
+
+                        // Use cumulative motion to determine final fling direction
+                        if ((totalDeltaY > 0 && flingVelocity > 0) || (totalDeltaY < 0 && flingVelocity < 0)) {
+                            flingVelocity = -flingVelocity; // Reverse velocity to align with motion
+                        }
+
+                        isFlinging = true;
+                        startFling();
+
+                        if (velocityTracker != null) {
+                            velocityTracker.recycle();
+                            velocityTracker = null;
+                        }
                         return true;
                 }
                 return false;
             }
+
+            private void startFling() {
+                new Thread(() -> {
+                    int currentHeight = scrollView.getLayoutParams().height;
+
+                    while (isFlinging) {
+                        try {
+                            Thread.sleep(16); // 60 FPS
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+
+                        flingVelocity *= FLING_DECELERATION;
+
+                        if (Math.abs(flingVelocity) < 1) {
+                            isFlinging = false;
+                            break;
+                        }
+
+                        int newHeight = (int) (currentHeight - flingVelocity * 0.1f);
+                        if (newHeight <= COLLAPSED_HEIGHT) {
+                            newHeight = COLLAPSED_HEIGHT;
+                            isFlinging = false;
+                        } else if (newHeight >= EXPANDED_HEIGHT) {
+                            newHeight = EXPANDED_HEIGHT;
+                            isFlinging = false;
+                        }
+
+                        final int finalHeight = newHeight;
+                        scrollView.post(() -> {
+                            scrollView.getLayoutParams().height = finalHeight;
+                            scrollView.requestLayout();
+                        });
+
+                        currentHeight = newHeight;
+                    }
+                }).start();
+            }
         });
+
+
 
 
 
@@ -164,18 +266,29 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-
-
-
-
     public void toggleTimer(String itemName) {
         if (isRunning.containsKey(itemName) && timers.containsKey(itemName)) {
+            // Stop all other timers if they are running
+            for (String key : isRunning.keySet()) {
+                if (!key.equals(itemName) && isRunning.get(key)) {
+                    // Stop the timer for this item
+                    isRunning.put(key, false);
+                    handlers.get(key).removeCallbacksAndMessages(null);
+                    timers.get(key).setEndTime(new Date());
+                    Toast.makeText(this, key + " pysäytetty.", Toast.LENGTH_SHORT).show();
+                    itemAdapter.notifyDataSetChanged();
+                }
+            }
+
+            // Now toggle the timer for the current item
             if (isRunning.get(itemName)) {
+                // If the timer is running, stop it
                 isRunning.put(itemName, false);
                 handlers.get(itemName).removeCallbacksAndMessages(null);
-                timers.get(itemName).setEndTime(new Date()); // Set end time when the timer stops
-                Toast.makeText(this, itemName + " stopped.", Toast.LENGTH_SHORT).show();
+                timers.get(itemName).setEndTime(new Date());
+                Toast.makeText(this, itemName + " pysäytetty.", Toast.LENGTH_SHORT).show();
             } else {
+                // If the timer is not running, start it
                 isRunning.put(itemName, true);
                 TimeDetails timeDetails = timers.get(itemName);
 
@@ -184,13 +297,16 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 startTimer(itemName);
-                Toast.makeText(this, itemName + " started", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, itemName + " aloitettu", Toast.LENGTH_SHORT).show();
             }
+
+            // Update time display
             updateTimeDisplay();
         } else {
-            Toast.makeText(this, "Invalid item or data has been cleared.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Virheellistä tietoa, tai tiedot on poistettu.", Toast.LENGTH_SHORT).show();
         }
     }
+
 
     private void startTimer(String itemName) {
         Runnable runnable = new Runnable() {
@@ -211,8 +327,8 @@ public class MainActivity extends AppCompatActivity {
 
         builder.setPositiveButton("Kyllä", (dialog, which) -> {
             if (isRunning.get(itemName)) {
-                handlers.get(itemName).removeCallbacksAndMessages(null); // Stop the Handler tasks
-                isRunning.put(itemName, false); // Mark as stopped
+                handlers.get(itemName).removeCallbacksAndMessages(null);
+                isRunning.put(itemName, false);
             }
 
             items.remove(itemName);
@@ -223,7 +339,7 @@ public class MainActivity extends AppCompatActivity {
             itemAdapter.notifyDataSetChanged();
             updateTimeDisplay();
 
-            Toast.makeText(this, "\"" + itemName + "\" deleted successfully.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "\"" + itemName + "\" poistettu.", Toast.LENGTH_SHORT).show();
         });
 
         builder.setNegativeButton("Ei", (dialog, which) -> {
@@ -271,7 +387,7 @@ public class MainActivity extends AppCompatActivity {
                     startTimer(newName);
                 }
             } else {
-                Toast.makeText(this, "Tämänniminen kohde löytyy jo.", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Tämän niminen kohde löytyy jo.", Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -287,50 +403,106 @@ public class MainActivity extends AppCompatActivity {
         for (String name : items) {
             TimeDetails timeDetails = timers.get(name);
 
-            // Extract start and end times as strings
             String startTime = (timeDetails.getStartTime() != null) ? dateFormat.format(timeDetails.getStartTime()) : "00:00";
             String endTime = (timeDetails.getEndTime() != null) ? dateFormat.format(timeDetails.getEndTime()) : "00:00";
 
-            boolean isTaskRunning = isRunning.get(name); // Flag for running tasks
+            boolean isTaskRunning = isRunning.get(name);
 
-            // Calculate duration
             long durationMinutes = 0;
             double durationHours = 0.0;
 
             if (timeDetails.getStartTime() != null && timeDetails.getEndTime() != null) {
                 long durationMillis = timeDetails.getEndTime().getTime() - timeDetails.getStartTime().getTime();
-                durationMinutes = Math.round(durationMillis / (1000.0 * 60)); // Round to nearest minute
+                durationMinutes = Math.round(durationMillis / (1000.0 * 60));
 
                 if (durationMinutes == 0 && durationMillis > 0) {
                     durationMinutes = 1;
                 }
 
-                durationHours = Math.round((durationMinutes / 60.0) * 100.0) / 100.0; // Rounded to 2 decimals
+                durationHours = Math.round((durationMinutes / 60.0) * 100.0) / 100.0;
             }
 
-            // Start and End Times (Styled)
+            // Separate "Aloitus" and "Lopetus" time values and color
             SpannableString startEndTimes = new SpannableString("Aloitus: " + startTime + " | Lopetus: " + endTime);
 
+            // "Aloitus:" color
             startEndTimes.setSpan(
                     new ForegroundColorSpan(ContextCompat.getColor(this, R.color.startTimeColor)),
-                    0, "Aloitus: ".length() + startTime.length(),
+                    0, "Aloitus: ".length(),
                     Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
             );
 
+            // "startTime" number color
+            startEndTimes.setSpan(
+                    new ForegroundColorSpan(ContextCompat.getColor(this, R.color.startTimeBgColor)), // Numeric color (example green)
+                    "Aloitus: ".length(), "Aloitus: ".length() + startTime.length(),
+                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+            );
+
+            // "| Lopetus:" color
             startEndTimes.setSpan(
                     new ForegroundColorSpan(ContextCompat.getColor(this, R.color.endTimeColor)),
-                    "Aloitus: ".length() + startTime.length() + 3,
-                    startEndTimes.length(),
+                    "Aloitus: ".length() + startTime.length() + 3, "Aloitus: ".length() + startTime.length() + 3 + "| Lopetus: ".length(),
                     Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
             );
 
-            // Running Indicator (If Task is Running)
+            // "endTime" number color
+            startEndTimes.setSpan(
+                    new ForegroundColorSpan(ContextCompat.getColor(this, R.color.endTimeBgColor)), // Numeric color (example red)
+                    "Aloitus: ".length() + startTime.length() + "| Lopetus: ".length(), startEndTimes.length(),
+                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+            );
+
             SpannableString runningIndicator = new SpannableString(isTaskRunning ? " ⏳" : "");
 
-            // Create duration string
+            // Prepare duration text with numeric values included
             String durationText = "Kesto: " + durationMinutes + " minuuttia, " + String.format("%.2f", durationHours) + " tuntia";
+            SpannableString durationSpannable = new SpannableString(durationText);
 
-            // Separator Line
+            // Color "Kesto:"
+            durationSpannable.setSpan(
+                    new ForegroundColorSpan(ContextCompat.getColor(this, R.color.kestoColor)),
+                    0, "Kesto: ".length(),
+                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+            );
+
+            // Color "minuuttia"
+            int minutesStart = durationText.indexOf("minuuttia");
+            durationSpannable.setSpan(
+                    new ForegroundColorSpan(ContextCompat.getColor(this, R.color.kestoColor)),
+                    minutesStart, minutesStart + "minuuttia".length(),
+                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+            );
+
+            // Color "tuntia"
+            int hoursStart = durationText.indexOf("tuntia");
+            durationSpannable.setSpan(
+                    new ForegroundColorSpan(ContextCompat.getColor(this, R.color.kestoColor)),
+                    hoursStart, hoursStart + "tuntia".length(),
+                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+            );
+
+            // Color the numeric values (durationMinutes and durationHours)
+            // Color durationMinutes (number of minutes)
+            String minutesValue = String.valueOf(durationMinutes);
+            int minutesValueStart = durationText.indexOf(minutesValue);
+            int minutesValueEnd = minutesValueStart + minutesValue.length();
+            durationSpannable.setSpan(
+                    new ForegroundColorSpan(ContextCompat.getColor(this, R.color.buttonColorPrimary)), // Custom color for the minutes
+                    minutesValueStart, minutesValueEnd,
+                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+            );
+
+            // Color durationHours (number of hours)
+            String hoursValue = String.format("%.2f", durationHours);
+            int hoursValueStart = durationText.indexOf(hoursValue);
+            int hoursValueEnd = hoursValueStart + hoursValue.length();
+            durationSpannable.setSpan(
+                    new ForegroundColorSpan(ContextCompat.getColor(this, R.color.buttonColorPrimary)), // Custom color for the hours
+                    hoursValueStart, hoursValueEnd,
+                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+            );
+
             SpannableString separatorLine = new SpannableString("────────────────────");
             separatorLine.setSpan(
                     new ForegroundColorSpan(ContextCompat.getColor(this, R.color.white)),
@@ -338,15 +510,15 @@ public class MainActivity extends AppCompatActivity {
                     Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
             );
 
-            // Append all parts to display text
             displayText.append(name).append("\n")
-                    .append(startEndTimes).append(runningIndicator).append("\n") // Ensures runningIndicator shows properly
-                    .append(durationText).append("\n")
+                    .append(startEndTimes).append(runningIndicator).append("\n")
+                    .append(durationSpannable).append("\n")
                     .append(separatorLine).append("\n");
         }
-
         timeDisplay.setText(displayText);
     }
+
+
 
 
 
@@ -365,25 +537,23 @@ public class MainActivity extends AppCompatActivity {
 
             if (timeDetails.getStartTime() != null && timeDetails.getEndTime() != null) {
                 long durationMillis = timeDetails.getEndTime().getTime() - timeDetails.getStartTime().getTime();
-                durationMinutes = Math.round(durationMillis / (1000.0 * 60)); // Round to nearest minute
+                durationMinutes = Math.round(durationMillis / (1000.0 * 60));
 
                 if (durationMinutes == 0 && durationMillis > 0) {
                     durationMinutes = 1;
                 }
 
-                durationHours = Math.round((durationMinutes / 60.0) * 100.0) / 100.0; // Correctly rounded to 2 decimals
+                durationHours = Math.round((durationMinutes / 60.0) * 100.0) / 100.0;
             }
-
             String runningIndicator = isRunning.get(name) ? " (Aika juoksee)" : "";
 
             dataToSave.append(name).append("\n")
                     .append("Aloitus: ").append(startTime).append(runningIndicator).append("\n")
                     .append("Lopetus: ").append(endTime).append("\n")
                     .append("Kesto: ").append(durationMinutes).append(" minuuttia, ")
-                    .append(String.format("%.2f", durationHours)).append(" tuntia\n") // Ensure 2 decimal places
+                    .append(String.format("%.2f", durationHours)).append(" tuntia\n")
                     .append("--------------------").append("\n");
         }
-
         String fileName = "Lumityot " + new SimpleDateFormat("yyyy.MM.dd_HH.mm").format(new Date()) + ".txt";
 
         try {
@@ -445,7 +615,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void loadData() {
-        // Skip loading if a file has just been imported
         if (hasImportedFile) {
             Log.d("LoadData", "Skipping load: data was just imported.");
             return;
@@ -479,7 +648,6 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         }
-
         itemAdapter.notifyDataSetChanged();
         updateTimeDisplay();
     }
@@ -491,9 +659,7 @@ public class MainActivity extends AppCompatActivity {
 
         builder.setPositiveButton("Kyllä", (dialog, which) -> {
             stopAllTimers();
-
             clearAllData();
-
             itemAdapter.notifyDataSetChanged();
 
             Toast.makeText(this, "Kaikki tiedot poistettu ja sovellus aloitettu alusta.", Toast.LENGTH_SHORT).show();

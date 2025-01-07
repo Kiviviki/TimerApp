@@ -1,13 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
-    <color name="startTimeColor">#00C853</color>
-    <color name="endTimeColor">#D50000</color>
-    <color name="startTimeBgColor">#B2DFDB</color>
-    <color name="endTimeBgColor">#6750a4</color>
-    <color name="grey">#b3b3e6</color>
-    <color name="activeResizeColor">#5353c6</color>
-    <color name="defaultColor">#b3b3e6</color>
-    <color name="scrollView">#050a14</color>
+    <!-- Neutral Colors -->
+    <color name="black">#000000</color>
+    <color name="white">#FFFFFF</color>
+
+    <!-- Interaction Colors -->
+    <color name="activeResizeColor">#ff8c1a</color> <!-- Vibrant highlight -->
+    <color name="highlightMoveColor">#ff8c1a</color>
+    <color name="defaultColor">#ffbf80</color>
+
+    <!-- Button Colors -->
+    <color name="buttonColorPrimary">#ff9933</color> <!-- Bright blue for dark mode -->
+    <color name="buttonColorSecondary">#29B6F6</color> <!-- Complementary blue -->
+    <color name="buttonTextColor">#000000</color>
+
+    <!-- Timer Colors -->
+    <color name="startTimeColor">#43A047</color> <!-- Dark green -->
+    <color name="endTimeColor">#E53935</color> <!-- Dark red -->
+    <color name="startTimeBgColor">#4cb551</color>
+    <color name="endTimeBgColor">#e6403c</color>
+    <color name="kestoColor">#e6e600</color>
+
+    <!-- Background & General Colors -->
+    <color name="grey">#331a00</color>
+    <color name="dark_grey">#212121</color>
+    <color name="scrollView">#1a0d00</color>
+    <color name="itemBackground">#1a0d00</color>
+    <color name="dividerColor">#37474F</color>
+
+    <!-- Text Colors -->
+    <color name="textColorPrimary">#FFFFFF</color>
+    <color name="textColorSecondary">#ffe6cc</color> <!-- Subtle for contrast -->
 </resources>
