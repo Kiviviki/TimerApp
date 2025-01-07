@@ -21,6 +21,11 @@
     <color name="endTimeBgColor">#e6403c</color>
     <color name="kestoColor">#e6e600</color>
 
+    <!-- Timer Item BG Colors -->
+    <color name="DefaultItemBg">#331a00</color>
+    <color name="RunningItemBg">#5e6101</color>
+    <color name="EndItemBg">#066101</color>
+
     <!-- Background & General Colors -->
     <color name="grey">#331a00</color>
     <color name="dark_grey">#212121</color>

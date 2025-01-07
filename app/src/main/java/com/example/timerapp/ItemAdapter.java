@@ -1,5 +1,6 @@
 package com.example.timerapp;
 
+import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Handler;
@@ -11,6 +12,7 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -41,6 +43,29 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ItemViewHolder
     public void onBindViewHolder(ItemViewHolder holder, int position) {
         String itemName = items.get(position);
 
+        // Get context from the ViewHolder's itemView
+        Context context = holder.itemView.getContext();
+
+        // Dynamically update the background based on timer state (running or stopped)
+        boolean isTimerRunning = isRunning.getOrDefault(itemName, false);
+        boolean isTimerEnded = timers.get(itemName).getEndTime() != null;
+
+        // Determine background color based on timer state
+        int backgroundColor;
+        if (isTimerRunning) {
+            // Timer is running
+            backgroundColor = ContextCompat.getColor(context, R.color.RunningItemBg); // Yellow
+        } else if (isTimerEnded) {
+            // Timer has ended
+            backgroundColor = ContextCompat.getColor(context, R.color.EndItemBg); // Green
+        } else {
+            // Default background
+            backgroundColor = ContextCompat.getColor(context, R.color.DefaultItemBg); // Dark
+        }
+
+        // Set the background color dynamically
+        holder.nameTextView.setBackgroundColor(backgroundColor);
+
         // Set address text to TextView
         holder.nameTextView.setText(itemName);
 
@@ -50,18 +75,34 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ItemViewHolder
         });
 
         // Button setups (Start/Stop, Edit, Delete, etc.)
-        holder.startStopButton.setText(isRunning.get(itemName) ? "Pysäytä" : "Aloita");
+        holder.startStopButton.setText(isTimerRunning ? "Pysäytä" : "Aloita");
 
         holder.deleteButton.setOnClickListener(v -> mainActivity.deleteItem(itemName));
         holder.editButton.setOnClickListener(v -> mainActivity.editItem(itemName));
 
         holder.startStopButton.setOnClickListener(v -> {
+            // Toggle the timer for this item
             mainActivity.toggleTimer(itemName);
 
+            // Get the updated timer state after toggle
             boolean timerState = isRunning.get(itemName);
+
+            // Set the correct button text based on the state of the timer
             holder.startStopButton.setText(timerState ? "Pysäytä" : "Aloita");
+
+            // Update the background color of the name text view based on the new timer state
+            if (timerState) {
+                holder.nameTextView.setBackgroundColor(ContextCompat.getColor(context, R.color.RunningItemBg));
+            } else if (timers.get(itemName).getEndTime() != null) {
+                holder.nameTextView.setBackgroundColor(ContextCompat.getColor(context, R.color.EndItemBg));
+            } else {
+                holder.nameTextView.setBackgroundColor(ContextCompat.getColor(context, R.color.DefaultItemBg));
+            }
         });
     }
+
+
+
 
     private void openAddressInGoogleMaps(String itemText) {
         try {

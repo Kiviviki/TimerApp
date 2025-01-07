@@ -17,41 +17,47 @@
         android:textColor="@color/textColorPrimary"
         android:padding="8dp"
         android:clickable="true"
-        android:focusable="true" 
-	android:layout_marginBottom="8dp" />
+        android:focusable="true"
+        android:layout_marginBottom="8dp" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:gravity="left">
+        android:gravity="start">
 
-    <Button
-        android:id="@+id/startStopButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-    android:backgroundTint="@color/buttonColorPrimary"
-    android:textColor="@color/buttonTextColor"
-        android:text="Aloita"
-	android:layout_marginEnd="8dp" />
+        <Button
+            android:id="@+id/editButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:backgroundTint="@color/buttonColorPrimary"
+            android:textColor="@color/buttonTextColor"
+            android:text="Muokkaa"
+            android:layout_marginEnd="8dp" />
 
-    <Button
-        android:id="@+id/editButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-    android:backgroundTint="@color/buttonColorPrimary"
-    android:textColor="@color/buttonTextColor"
-        android:text="Muokkaa"
-	android:layout_marginEnd="8dp" />
+        <Button
+            android:id="@+id/deleteButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:backgroundTint="@color/buttonColorPrimary"
+            android:textColor="@color/buttonTextColor"
+            android:text="Poista"
+            android:layout_marginEnd="8dp" />
 
-    <Button
-        android:id="@+id/deleteButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-    android:backgroundTint="@color/buttonColorPrimary"
-    android:textColor="@color/buttonTextColor"
-        android:text="Poista"
-	android:layout_marginEnd="8dp" />
+        <!-- Aligns the button to the right without stretching it -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1" />
 
+        <Button
+            android:id="@+id/startStopButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:backgroundTint="@color/buttonColorPrimary"
+            android:textColor="@color/buttonTextColor"
+            android:text="Aloita"
+            android:layout_marginEnd="8dp"
+            android:gravity="center" />
     </LinearLayout>
 </LinearLayout>

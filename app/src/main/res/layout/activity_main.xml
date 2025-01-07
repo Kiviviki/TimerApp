@@ -30,15 +30,6 @@
             android:text="Lisää" />
 
         <Button
-            android:id="@+id/saveButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:backgroundTint="@color/buttonColorPrimary"
-            android:textColor="@color/buttonTextColor"
-            android:text="Luo"
-            android:layout_marginStart="8dp" />
-
-        <Button
             android:id="@+id/clearDataButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -47,6 +38,15 @@
             android:text="Tyhjennä"
             android:layout_marginStart="8dp"
             tools:ignore="VisualLintButtonSize" />
+
+        <Button
+            android:id="@+id/saveButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:backgroundTint="@color/buttonColorPrimary"
+            android:textColor="@color/buttonTextColor"
+            android:text="Vie"
+            android:layout_marginStart="8dp" />
 
         <Button
             android:id="@+id/importButton"
