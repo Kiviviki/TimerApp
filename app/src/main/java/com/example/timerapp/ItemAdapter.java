@@ -12,6 +12,7 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 import java.util.ArrayList;
@@ -101,27 +102,34 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ItemViewHolder
         });
     }
 
-
-
-
     private void openAddressInGoogleMaps(String itemText) {
         try {
-            // Extract the address part by splitting at the first space or tab
             String[] parts = itemText.split("\\s+", 2); // Split into [number, address]
-            String address = parts.length > 1 ? parts[1] : itemText; // Default to full text if split fails
+            String address = parts.length > 1 ? parts[1] : itemText;
 
-            // Create a geo URI with the extracted address
             Uri geoUri = Uri.parse("geo:0,0?q=" + Uri.encode(address));
 
-            // Create an implicit intent to open Google Maps
-            Intent mapIntent = new Intent(Intent.ACTION_VIEW, geoUri);
-            mapIntent.setPackage("com.google.android.apps.maps");  // Target Google Maps app
-            mainActivity.startActivity(mapIntent);
+            AlertDialog.Builder builder = new AlertDialog.Builder(mainActivity);
+
+            String message = "Avataanko Google Maps?\n\n" + address;
+
+            builder.setMessage(message)
+                    .setCancelable(true)
+                    .setPositiveButton("Kyllä", (dialog, id) -> {
+                        Intent mapIntent = new Intent(Intent.ACTION_VIEW, geoUri);
+                        mapIntent.setPackage("com.google.android.apps.maps");
+                        mainActivity.startActivity(mapIntent);
+                    })
+                    .setNegativeButton("Ei", (dialog, id) -> {
+                        dialog.dismiss();
+                    });
+
+            AlertDialog alert = builder.create();
+            alert.show();
         } catch (Exception e) {
             Log.e("GoogleMapsError", "Failed to open address in Google Maps", e);
         }
     }
-
 
     @Override
     public int getItemCount() {

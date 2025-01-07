@@ -226,12 +226,8 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-
-
-
-
         Button saveButton = findViewById(R.id.saveButton);
-        saveButton.setOnClickListener(v -> saveTimeDisplayToFile());
+        saveButton.setOnClickListener(v -> confirmSaveTimeDisplayToFile());
 
         Button clearDataButton = findViewById(R.id.clearDataButton);
         clearDataButton.setOnClickListener(v -> resetData());
@@ -518,9 +514,24 @@ public class MainActivity extends AppCompatActivity {
         timeDisplay.setText(displayText);
     }
 
+    public void confirmSaveTimeDisplayToFile() {
+        // Prepare the alert dialog for confirmation
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setMessage("Haluatko tallentaa tiedot?")
+                .setCancelable(true)  // Allows dialog to be dismissed when touching outside
+                .setPositiveButton("Kyllä", (dialog, id) -> {
+                    // User confirmed, now save the file
+                    saveTimeDisplayToFile();
+                })
+                .setNegativeButton("Ei", (dialog, id) -> {
+                    // User declined, just dismiss the dialog
+                    dialog.dismiss();
+                });
 
-
-
+        // Create and show the dialog
+        AlertDialog alert = builder.create();
+        alert.show();
+    }
 
     public void saveTimeDisplayToFile() {
         StringBuilder dataToSave = new StringBuilder();
@@ -585,6 +596,7 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(this, "Tietoja ei voitu tallentaa: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
+
 
     @Override
     protected void onPause() {
@@ -693,7 +705,6 @@ public class MainActivity extends AppCompatActivity {
         editor.clear();
         editor.apply();
 
-        Toast.makeText(this, "Data cleared!", Toast.LENGTH_SHORT).show();
     }
 
     public void clearInternalData() {
@@ -704,7 +715,6 @@ public class MainActivity extends AppCompatActivity {
 
         updateTimeDisplay();
 
-        Toast.makeText(this, "Internal data cleared!", Toast.LENGTH_SHORT).show();
     }
 
     private void launchFilePicker() {
@@ -739,7 +749,7 @@ public class MainActivity extends AppCompatActivity {
             hasImportedFile = true;
 
         } catch (Exception e) {
-            Log.e("ImportError", "Error importing file", e);
+            Log.e("ImportError", "Virhe tiedostoa tuodessa!", e);
         }
     }
 }
