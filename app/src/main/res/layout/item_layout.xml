@@ -1,63 +1,45 @@
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:background="@color/itemBackground"
     android:padding="8dp">
 
-    <TextView
-        android:id="@+id/nameTextView"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:text="Timer Item"
-        android:textSize="16sp"
-        android:background="@color/grey"
-        android:textColor="@color/textColorPrimary"
-        android:padding="8dp"
-        android:clickable="true"
-        android:focusable="true"
-        android:layout_marginBottom="8dp" />
-
+    <!-- Horizontal Layout for Text and Delete Button -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:gravity="start">
+        android:gravity="center_vertical">
 
-        <Button
-            android:id="@+id/editButton"
-            android:layout_width="wrap_content"
+        <!-- Timer Item TextView -->
+        <TextView
+            android:id="@+id/nameTextView"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:backgroundTint="@color/buttonColorPrimary"
-            android:textColor="@color/buttonTextColor"
-            android:text="Muokkaa"
+            android:layout_weight="1"
+            android:text="Timer Item"
+            android:textSize="18sp"
+            android:background="@color/grey"
+            android:textColor="@color/textColorPrimary"
+            android:paddingVertical="8dp"
+            android:paddingHorizontal="12dp"
+            android:clickable="true"
+            android:focusable="true"
             android:layout_marginEnd="8dp" />
 
-        <Button
+        <!-- Trash Can Icon for Deleting Items -->
+        <ImageButton
             android:id="@+id/deleteButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:backgroundTint="@color/buttonColorPrimary"
-            android:textColor="@color/buttonTextColor"
-            android:text="Poista"
-            android:layout_marginEnd="8dp" />
+            android:background="@null"
+            android:contentDescription="@string/reset_item"
+            android:src="@android:drawable/ic_menu_revert"
+            app:tint="@color/endTimeBgColor"
+            android:layout_gravity="center_vertical" />
 
-        <!-- Aligns the button to the right without stretching it -->
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1" />
-
-        <Button
-            android:id="@+id/startStopButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:backgroundTint="@color/buttonColorPrimary"
-            android:textColor="@color/buttonTextColor"
-            android:text="Aloita"
-            android:layout_marginEnd="8dp"
-            android:gravity="center" />
     </LinearLayout>
 </LinearLayout>

@@ -25,6 +25,7 @@
     <color name="DefaultItemBg">#331a00</color>
     <color name="RunningItemBg">#5e6101</color>
     <color name="EndItemBg">#066101</color>
+    <color name="redFadeColor">#610101</color>
 
     <!-- Background & General Colors -->
     <color name="grey">#331a00</color>

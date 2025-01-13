@@ -1,5 +1,9 @@
 package com.example.timerapp;
 
+import android.animation.ObjectAnimator;
+import android.animation.ValueAnimator;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
@@ -9,6 +13,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -47,60 +52,79 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ItemViewHolder
         // Get context from the ViewHolder's itemView
         Context context = holder.itemView.getContext();
 
-        // Dynamically update the background based on timer state (running or stopped)
+        // Get the colors from resources
+        int runningColor = ContextCompat.getColor(context, R.color.RunningItemBg); // Yellow
+        int endColor = ContextCompat.getColor(context, R.color.EndItemBg); // Green
+        int defaultColor = ContextCompat.getColor(context, R.color.DefaultItemBg); // Dark
+        int redColor = ContextCompat.getColor(context, R.color.redFadeColor); // Red
+
+        // Dynamically update the background based on timer state
         boolean isTimerRunning = isRunning.getOrDefault(itemName, false);
         boolean isTimerEnded = timers.get(itemName).getEndTime() != null;
 
-        // Determine background color based on timer state
-        int backgroundColor;
+        // Set initial background color
         if (isTimerRunning) {
-            // Timer is running
-            backgroundColor = ContextCompat.getColor(context, R.color.RunningItemBg); // Yellow
+            startBackAndForthAnimation(holder.nameTextView, redColor, runningColor);
         } else if (isTimerEnded) {
-            // Timer has ended
-            backgroundColor = ContextCompat.getColor(context, R.color.EndItemBg); // Green
+            stopAnimation(holder.nameTextView);
+            holder.nameTextView.setBackgroundColor(endColor); // Static green
         } else {
-            // Default background
-            backgroundColor = ContextCompat.getColor(context, R.color.DefaultItemBg); // Dark
+            stopAnimation(holder.nameTextView);
+            holder.nameTextView.setBackgroundColor(defaultColor); // Static default
         }
 
-        // Set the background color dynamically
-        holder.nameTextView.setBackgroundColor(backgroundColor);
-
-        // Set address text to TextView
+        // Set the item text
         holder.nameTextView.setText(itemName);
 
-        // Set up a click listener to open Google Maps for this address
-        holder.nameTextView.setOnClickListener(v -> {
-            openAddressInGoogleMaps(itemName);
-        });
-
-        // Button setups (Start/Stop, Edit, Delete, etc.)
-        holder.startStopButton.setText(isTimerRunning ? "Pysäytä" : "Aloita");
-
+        // Attach delete functionality to the trash can icon
         holder.deleteButton.setOnClickListener(v -> mainActivity.deleteItem(itemName));
-        holder.editButton.setOnClickListener(v -> mainActivity.editItem(itemName));
 
-        holder.startStopButton.setOnClickListener(v -> {
-            // Toggle the timer for this item
-            mainActivity.toggleTimer(itemName);
+        // Click listener for toggling the timer
+        holder.nameTextView.setOnClickListener(v -> mainActivity.toggleTimer(itemName));
 
-            // Get the updated timer state after toggle
-            boolean timerState = isRunning.get(itemName);
-
-            // Set the correct button text based on the state of the timer
-            holder.startStopButton.setText(timerState ? "Pysäytä" : "Aloita");
-
-            // Update the background color of the name text view based on the new timer state
-            if (timerState) {
-                holder.nameTextView.setBackgroundColor(ContextCompat.getColor(context, R.color.RunningItemBg));
-            } else if (timers.get(itemName).getEndTime() != null) {
-                holder.nameTextView.setBackgroundColor(ContextCompat.getColor(context, R.color.EndItemBg));
-            } else {
-                holder.nameTextView.setBackgroundColor(ContextCompat.getColor(context, R.color.DefaultItemBg));
-            }
+        // Long-click listener for editing the item
+        holder.nameTextView.setOnLongClickListener(v -> {
+            mainActivity.editItem(itemName);
+            return true;
         });
     }
+
+
+    /**
+     * Starts a back-and-forth color animation on a TextView.
+     *
+     * @param view        The TextView to animate.
+     * @param startColor  The first color.
+     * @param endColor    The second color.
+     */
+    private void startBackAndForthAnimation(View view, int startColor, int endColor) {
+        Object tag = view.getTag(R.id.animation_running); // Use a custom tag to track animations
+        if (tag instanceof ObjectAnimator && ((ObjectAnimator) tag).isRunning()) {
+            return; // Animation is already running
+        }
+
+        ObjectAnimator colorAnimator = ObjectAnimator.ofArgb(view, "backgroundColor", startColor, endColor);
+        colorAnimator.setDuration(1000); // 1 second per phase
+        colorAnimator.setRepeatMode(ValueAnimator.REVERSE); // Reverse back and forth
+        colorAnimator.setRepeatCount(ValueAnimator.INFINITE); // Run forever
+        colorAnimator.start();
+        view.setTag(R.id.animation_running, colorAnimator); // Store the animator in the tag
+    }
+
+    /**
+     * Stops any ongoing animation on a TextView.
+     *
+     * @param view The TextView whose animation should be stopped.
+     */
+    private void stopAnimation(View view) {
+        Object tag = view.getTag(R.id.animation_running);
+        if (tag instanceof ObjectAnimator) {
+            ((ObjectAnimator) tag).cancel(); // Cancel the animation
+            view.setTag(R.id.animation_running, null); // Clear the tag
+        }
+    }
+
+
 
     private void openAddressInGoogleMaps(String itemText) {
         try {
@@ -140,15 +164,13 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ItemViewHolder
     public static class ItemViewHolder extends RecyclerView.ViewHolder {
         TextView nameTextView;
         Button startStopButton;
-        Button deleteButton;
+        ImageButton deleteButton;
         Button editButton;
 
         public ItemViewHolder(View itemView) {
             super(itemView);
             nameTextView = itemView.findViewById(R.id.nameTextView);
-            startStopButton = itemView.findViewById(R.id.startStopButton);
             deleteButton = itemView.findViewById(R.id.deleteButton);
-            editButton = itemView.findViewById(R.id.editButton);
         }
     }
 }

@@ -1,0 +1,4 @@
+<resources>
+    <!-- Custom IDs for tags -->
+    <item name="animation_running" type="id" />
+</resources>

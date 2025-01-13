@@ -1,0 +1,22 @@
+#52656 Rakentajankatu 2 Ojan Rauta
+#52678 Antinkankaantie 20 Pikahuolto
+#52731 Antinkankaantie 20 PH-Kirppis
+#52658 Antinkatu 1 Varaosaportti
+#52729 Länsikalkka 2 TMW
+#52736 Kirkkokatu 25 Kukkatalo
+#52825 Vapaaseurakunta
+#50455 Cortenkatu 2
+#52362 Lukiokatu 2
+#52592 Valjaspolku 1
+#52673 Rantakatu 14
+#52680 Koulukatu 9
+#52682 Kartanokatu 5
+#52732 Kauppakatu 36
+#52737 Koulutie 2
+#52740 Kesäläntulli 1
+#52746 Saaristokatu 50
+#52791 YYrittäjäntie 3
+#52821 Kirkkokatu xx kala&kahvila
+#52823 Pajakatu 5 Tilausliikenne
+#52738 Kannuskatu 3 Kannuskatu 8
+#53299 Antinkankaantie 35 SVK

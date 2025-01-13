@@ -1,0 +1,28 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/menu_add"
+        android:title="Lisää kohde" />
+    <item
+        android:id="@+id/menu_import"
+        android:title="Tuo kohteet" />
+    <item
+        android:id="@+id/menu_reset"
+        android:title="Nollaa ajat" />
+    <item
+        android:id="@+id/menu_clear"
+        android:title="Poista kaikki" />
+    <item
+        android:id="@+id/menu_load_internal"
+        android:title="Tuodut listat" />
+    <item
+        android:id="@+id/menu_clear_internal_files"
+        android:title="Tyhjennä listakansio"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/menu_save"
+        android:title="Tallenna tiedot" />
+    <item
+        android:id="@+id/menu_load_flies"
+        android:title="Valmiit listat" />
+</menu>

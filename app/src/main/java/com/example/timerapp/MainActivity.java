@@ -7,11 +7,13 @@ import android.content.ContentValues;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.provider.MediaStore;
+import android.provider.OpenableColumns;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
@@ -23,11 +25,15 @@ import android.view.View;
 import android.widget.*;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
+import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.core.content.ContextCompat;
 import java.io.BufferedReader;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -37,8 +43,12 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import android.os.Environment;
+
+import com.google.android.material.navigation.NavigationView;
+
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -55,10 +65,60 @@ public class MainActivity extends AppCompatActivity {
 
     private boolean hasImportedFile = false;
 
+    private DrawerLayout drawerLayout;
+    private NavigationView navigationView;
+    private ActionBarDrawerToggle drawerToggle;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        // Set up Toolbar
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+
+        // Initialize DrawerLayout and NavigationView
+        drawerLayout = findViewById(R.id.drawerLayout);
+        navigationView = findViewById(R.id.navigationView);
+
+        // Setup ActionBarDrawerToggle
+        drawerToggle = new ActionBarDrawerToggle(
+                this, drawerLayout, toolbar,
+                R.string.navigation_drawer_open, // String resource for open description
+                R.string.navigation_drawer_close // String resource for close description
+        );
+        drawerLayout.addDrawerListener(drawerToggle);
+        drawerToggle.syncState(); // Synchronize the state of the drawer toggle
+
+        // Handle menu item clicks
+        navigationView.setNavigationItemSelectedListener(item -> {
+            int itemId = item.getItemId();
+
+            if (itemId == R.id.menu_add) {
+                addItem();
+            } else if (itemId == R.id.menu_clear) {
+                resetData();
+            } else if (itemId == R.id.menu_save) {
+                confirmSaveTimeDisplayToFile();
+            } else if (itemId == R.id.menu_import) {
+                launchFilePicker();
+            } else if (itemId == R.id.menu_reset) {
+                resetAllTimes();
+            } else if (itemId == R.id.menu_load_internal) {
+                showInternalFilePicker();
+            } else if (itemId == R.id.menu_clear_internal_files) {
+                clearInternalStorage();
+            } else if (itemId == R.id.menu_load_flies) {
+                showDefaultFilePicker();
+            } else {
+                return false;
+            }
+
+            drawerLayout.closeDrawers(); // Close the drawer
+            return true;
+        });
+
 
         importFileLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
@@ -76,8 +136,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        textInput = findViewById(R.id.textInput);
-        addButton = findViewById(R.id.addButton);
         recyclerView = findViewById(R.id.recyclerView);
         timeDisplay = findViewById(R.id.timeDisplay);
         ScrollView scrollView = findViewById(R.id.scrollView);
@@ -226,15 +284,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        Button saveButton = findViewById(R.id.saveButton);
-        saveButton.setOnClickListener(v -> confirmSaveTimeDisplayToFile());
-
-        Button clearDataButton = findViewById(R.id.clearDataButton);
-        clearDataButton.setOnClickListener(v -> resetData());
-
-        Button importButton = findViewById(R.id.importButton);
-        importButton.setOnClickListener(v -> launchFilePicker());
-
         items = new ArrayList<>();
         timers = new HashMap<>();
         isRunning = new HashMap<>();
@@ -243,24 +292,71 @@ public class MainActivity extends AppCompatActivity {
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         itemAdapter = new ItemAdapter(this, items, timers, isRunning, handlers);
         recyclerView.setAdapter(itemAdapter);
+    }
 
-        addButton.setOnClickListener(v -> {
-            String text = textInput.getText().toString().trim();
+    private void resetAllTimes() {
+        if (timers != null && !timers.isEmpty()) {
+            // Iterate over all items in the timers map
+            for (String itemName : timers.keySet()) {
+                // Reset TimeDetails for this timer
+                TimeDetails timeDetails = timers.get(itemName);
+                if (timeDetails != null) {
+                    timeDetails.setStartTime(null);
+                    timeDetails.setEndTime(null);
+                }
+
+                // Stop the running timer if any
+                if (isRunning.containsKey(itemName) && isRunning.get(itemName)) {
+                    isRunning.put(itemName, false);
+                    if (handlers.containsKey(itemName)) {
+                        handlers.get(itemName).removeCallbacksAndMessages(null);
+                    }
+                }
+            }
+
+            // Notify user or update UI
+            Toast.makeText(this, "Kaikki ajat on nollattu.", Toast.LENGTH_SHORT).show();
+
+            // Notify the adapter or refresh the UI to reflect the changes
+            itemAdapter.notifyDataSetChanged();
+            updateTimeDisplay();
+        } else {
+            Toast.makeText(this, "Aikoja ei löydy.", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+
+    private void addItem() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Lisää uusi kohde");
+
+        final EditText input = new EditText(this);
+        input.setHint("Anna kohteen nimi");
+        builder.setView(input);
+
+        builder.setPositiveButton("Lisää", (dialog, which) -> {
+            String text = input.getText().toString().trim();
             if (!text.isEmpty() && !items.contains(text)) {
                 items.add(text);
                 timers.put(text, new TimeDetails());
                 isRunning.put(text, false);
                 handlers.put(text, new Handler());
+
                 itemAdapter.notifyDataSetChanged();
-                textInput.setText("");
                 updateTimeDisplay();
+                Toast.makeText(this, "Kohde lisätty: " + text, Toast.LENGTH_SHORT).show();
             } else if (text.isEmpty()) {
                 Toast.makeText(this, "Syötä jotain järkevää.", Toast.LENGTH_SHORT).show();
             } else {
-                Toast.makeText(this, "Tämänniminen kohde löytyy jo", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Tämänniminen kohde löytyy jo.", Toast.LENGTH_SHORT).show();
             }
         });
+
+        builder.setNegativeButton("Hylkää", (dialog, which) -> dialog.cancel());
+
+        builder.show();
     }
+
 
     public void toggleTimer(String itemName) {
         if (isRunning.containsKey(itemName) && timers.containsKey(itemName)) {
@@ -274,6 +370,11 @@ public class MainActivity extends AppCompatActivity {
                     Toast.makeText(this, key + " pysäytetty.", Toast.LENGTH_SHORT).show();
                     itemAdapter.notifyDataSetChanged();
                 }
+            }
+
+            int position = items.indexOf(itemName);
+            if (position >= 0) {
+                itemAdapter.notifyItemChanged(position);
             }
 
             // Now toggle the timer for the current item
@@ -318,24 +419,32 @@ public class MainActivity extends AppCompatActivity {
 
     public void deleteItem(String itemName) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Kohteen poisto");
-        builder.setMessage("Haluatko varmasti poistaa \"" + itemName + "\"?");
+        builder.setTitle("Aikojen nollaus");
+        builder.setMessage("Haluatko varmasti nollata kohteen \"" + itemName + "\" ajat?");
 
         builder.setPositiveButton("Kyllä", (dialog, which) -> {
-            if (isRunning.get(itemName)) {
-                handlers.get(itemName).removeCallbacksAndMessages(null);
-                isRunning.put(itemName, false);
+            // Reset the TimeDetails for this item
+            if (timers.containsKey(itemName)) {
+                TimeDetails timeDetails = timers.get(itemName);
+                if (timeDetails != null) {
+                    timeDetails.setStartTime(null);
+                    timeDetails.setEndTime(null);
+                }
             }
 
-            items.remove(itemName);
-            timers.remove(itemName);
-            isRunning.remove(itemName);
-            handlers.remove(itemName);
+            // Stop the running timer if it exists
+            if (isRunning.containsKey(itemName) && isRunning.get(itemName)) {
+                isRunning.put(itemName, false);
+                if (handlers.containsKey(itemName)) {
+                    handlers.get(itemName).removeCallbacksAndMessages(null);
+                }
+            }
 
+            // Notify the adapter or refresh the UI to reflect the changes
             itemAdapter.notifyDataSetChanged();
             updateTimeDisplay();
 
-            Toast.makeText(this, "\"" + itemName + "\" poistettu.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Ajat kohteelle \"" + itemName + "\" on nollattu.", Toast.LENGTH_SHORT).show();
         });
 
         builder.setNegativeButton("Ei", (dialog, which) -> {
@@ -344,6 +453,7 @@ public class MainActivity extends AppCompatActivity {
 
         builder.show();
     }
+
 
     public void editItem(String itemName) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -667,7 +777,7 @@ public class MainActivity extends AppCompatActivity {
     public void resetData() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Aloita alusta");
-        builder.setMessage("Haluatko varmasti aloittaa alusta ja poistaa kaikki tiedot?");
+        builder.setMessage("Haluatko varmasti poistaa kaikki tiedot ja aloittaa alusta?");
 
         builder.setPositiveButton("Kyllä", (dialog, which) -> {
             stopAllTimers();
@@ -726,6 +836,13 @@ public class MainActivity extends AppCompatActivity {
 
     private void processImportedFile(Uri fileUri) {
         try {
+            // Extract filename from the URI
+            String fileName = getFileNameFromUri(fileUri);
+
+            // Save the file to internal storage
+            saveFileToInternalStorage(fileUri, fileName);
+
+            // Load content into the app's memory
             items.clear();
             InputStream inputStream = getContentResolver().openInputStream(fileUri);
             BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
@@ -738,18 +855,185 @@ public class MainActivity extends AppCompatActivity {
                     timers.put(text, new TimeDetails());
                     isRunning.put(text, false);
                     handlers.put(text, new Handler());
-                    updateTimeDisplay();
                 }
             }
 
-            runOnUiThread(() -> {
-                itemAdapter.notifyDataSetChanged();
-            });
-
+            inputStream.close();
+            runOnUiThread(() -> itemAdapter.notifyDataSetChanged());
             hasImportedFile = true;
 
         } catch (Exception e) {
             Log.e("ImportError", "Virhe tiedostoa tuodessa!", e);
         }
     }
+
+    private String getFileNameFromUri(Uri uri) {
+        String result = null;
+
+        // Check if the scheme is 'content'
+        if (uri.getScheme().equals("content")) {
+            Cursor cursor = null;
+            try {
+                cursor = getContentResolver().query(uri, null, null, null, null);
+                if (cursor != null && cursor.moveToFirst()) {
+                    int nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                    if (nameIndex >= 0) { // Ensure valid index
+                        result = cursor.getString(nameIndex);
+                    }
+                }
+            } finally {
+                if (cursor != null) {
+                    cursor.close();
+                }
+            }
+        }
+
+        // If result is still null, fallback to the file path
+        if (result == null) {
+            String path = uri.getPath();
+            int cut = (path != null) ? path.lastIndexOf('/') : -1;
+            if (cut != -1 && path != null) {
+                result = path.substring(cut + 1);
+            }
+        }
+
+        return result;
+    }
+
+    private void saveFileToInternalStorage(Uri fileUri, String fileName) {
+        try (InputStream inputStream = getContentResolver().openInputStream(fileUri);
+             FileOutputStream outputStream = openFileOutput(fileName, MODE_PRIVATE)) {
+
+            byte[] buffer = new byte[1024];
+            int length;
+            while ((length = inputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, length);
+            }
+        } catch (IOException e) {
+            Log.e("SaveFileError", "Virhe tiedostoa tallentaessa sisäiseen tallennukseen", e);
+        }
+    }
+
+    private void showInternalFilePicker() {
+        File internalDir = getFilesDir();
+        File[] files = internalDir.listFiles(); // List files in internal storage
+
+        if (files == null || files.length == 0) {
+            Toast.makeText(this, "Tuo listoja kohdasta 'Tuo kohteet'", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Initialize a list to hold file names excluding 'profileInstalled'
+        List<String> validFileNames = new ArrayList<>();
+
+        for (File file : files) {
+            // Check if the file is not 'profileInstalled' and add it to the list
+            if (!file.getName().equals("profileInstalled")) {
+                validFileNames.add(file.getName());
+            }
+        }
+
+        // If no valid files are left after excluding 'profileInstalled'
+        if (validFileNames.isEmpty()) {
+            Toast.makeText(this, "Ei löytynyt tiedostoja!", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Convert the list of valid file names to an array
+        String[] fileNames = validFileNames.toArray(new String[0]);
+
+        // Show dialog with valid files
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Valitse tiedosto")
+                .setItems(fileNames, (dialog, which) -> {
+                    loadInternalFile(fileNames[which]);
+                })
+                .show();
+    }
+
+
+    private void loadInternalFile(String fileName) {
+        try {
+            FileInputStream inputStream = openFileInput(fileName);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+
+            items.clear();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String text = line.trim();
+                if (!text.isEmpty() && !items.contains(text)) {
+                    items.add(text);
+                    timers.put(text, new TimeDetails());
+                    isRunning.put(text, false);
+                    handlers.put(text, new Handler());
+                }
+            }
+            inputStream.close();
+
+            runOnUiThread(() -> itemAdapter.notifyDataSetChanged());
+            hasImportedFile = true;
+
+        } catch (IOException e) {
+            Log.e("LoadFileError", "Virhe ladatessa sisäistä tiedostoa: " + fileName, e);
+        }
+    }
+
+    private void clearInternalStorage() {
+        File internalDir = getFilesDir();
+        File[] files = internalDir.listFiles(); // List all files in the directory
+
+        if (files != null && files.length > 0) {
+            for (File file : files) {
+                if (file.isFile()) {
+                    boolean deleted = file.delete(); // Attempt to delete each file
+                    if (!deleted) {
+                        Log.e("FileDeleteError", "Tiedostoa ei voitu poistaa: " + file.getName());
+                    }
+                }
+            }
+            Toast.makeText(this, "Kaikki sisäiset tiedostot poistettu.", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(this, "Ei sisäisiä tiedostoja poistettavaksi.", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void showDefaultFilePicker() {
+        String[] predefinedFiles = {"auraukset.txt", "kolaukset.txt"};
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Valitse tiedosto")
+                .setItems(predefinedFiles, (dialog, which) -> {
+                    loadDefaultFile(predefinedFiles[which]);
+                })
+                .show();
+    }
+
+    private void loadDefaultFile(String fileName) {
+        try {
+            InputStream inputStream = getAssets().open(fileName); // If stored in assets
+            // InputStream inputStream = getResources().openRawResource(R.raw.sample1); // If stored in res/raw
+
+            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+            String line;
+            items.clear();
+
+            while ((line = reader.readLine()) != null) {
+                String text = line.trim();
+                if (!text.isEmpty() && !items.contains(text)) {
+                    items.add(text);
+                    timers.put(text, new TimeDetails());
+                    isRunning.put(text, false);
+                    handlers.put(text, new Handler());
+                }
+            }
+            inputStream.close();
+            runOnUiThread(() -> itemAdapter.notifyDataSetChanged());
+
+            hasImportedFile = true;
+
+        } catch (IOException e) {
+            Log.e("FileLoadError", "Virhe ladatessa sisäistä tiedostoa!", e);
+        }
+    }
+
+
 }
