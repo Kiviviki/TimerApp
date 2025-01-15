@@ -5,9 +5,9 @@
     <color name="white">#FFFFFF</color>
 
     <!-- Interaction Colors -->
-    <color name="activeResizeColor">#ff8c1a</color> <!-- Vibrant highlight -->
-    <color name="highlightMoveColor">#ff8c1a</color>
-    <color name="defaultColor">#ffbf80</color>
+    <color name="activeResizeColor">#663401</color> <!-- Vibrant highlight -->
+    <color name="highlightMoveColor">#663401</color>
+    <color name="defaultColor">#592d00</color>
 
     <!-- Button Colors -->
     <color name="buttonColorPrimary">#ff9933</color> <!-- Bright blue for dark mode -->
@@ -37,4 +37,13 @@
     <!-- Text Colors -->
     <color name="textColorPrimary">#FFFFFF</color>
     <color name="textColorSecondary">#ffe6cc</color> <!-- Subtle for contrast -->
+
+    <color name="hoursColor">#FFA500</color> <!-- Orange -->
+    <color name="minutesColor">#FFA500</color> <!-- Orange -->
+
+    <color name="hintTextColor">#808080</color> <!-- Light gray -->
+    <color name="textColorPrimary2">@android:color/black</color>
+
+    <color name="menu_item_icon_color">@android:color/black</color>
+    <color name="menu_item_text_color">#FFFFFF</color>
 </resources>

@@ -29,7 +29,7 @@
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:layout_marginTop="8dp" />
+            android:layout_marginTop="0dp" />
 
         <!-- Footer Views -->
         <View
@@ -37,7 +37,7 @@
             android:layout_width="match_parent"
             android:layout_height="40dp"
             android:background="@color/defaultColor"
-            android:layout_marginTop="8dp" />
+            android:layout_marginTop="0dp" />
 
         <ScrollView
             android:id="@+id/scrollView"
@@ -65,5 +65,7 @@
         android:layout_height="match_parent"
         android:layout_gravity="start"
         android:background="@color/scrollView"
-        app:menu="@menu/drawer_menu" />
+        app:menu="@menu/drawer_menu"
+        app:itemIconTint="@color/menu_item_icon_color"
+        app:itemTextColor="@color/menu_item_text_color" />
 </androidx.drawerlayout.widget.DrawerLayout>

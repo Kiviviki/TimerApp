@@ -1,16 +1,13 @@
-Kiireinen
 #52658 Antinkatu 1 Varaosaportti
 #52678 Antinkankaantie 20 Pikahuolto
 #52656 Rakentajankatu 2 Ojan Rauta
 #53299 Antinkankaantie 35 SVK
 #52736 Kirkkokatu 25 Kukkatalo
 #52729 Länsikalkka 2 TMW
-Ollin kohteet
 #52749 Palokunnakatu 7 Pohjantauri
 #50719 Palokunnakatu 9 Maijantauri
 #52751 Palokunnakatu 11 Hakotauri
 #52753 Kauppakatu 1
-Ei kiireinen
 #52592 Valjaspolku 1
 #52137 Ratsukatu 5
 #50455 Cortenkatu 2
@@ -22,5 +19,4 @@ Ei kiireinen
 #53406 Jerenkuja 2
 #52688 Antinrannatie 7
 #52740 Kesäläntulli 1
-
 #50437 Omatyö

@@ -2,8 +2,11 @@ package com.example.timerapp;
 
 import android.app.AlertDialog;
 import android.Manifest;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.ContentResolver;
 import android.content.ContentValues;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -17,6 +20,8 @@ import android.provider.OpenableColumns;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
+import android.text.method.LinkMovementMethod;
+import android.text.style.ClickableSpan;
 import android.text.style.ForegroundColorSpan;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -44,6 +49,7 @@ import java.util.Date;
 import java.util.HashMap;
 import android.os.Environment;
 
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.navigation.NavigationView;
 
 import java.io.File;
@@ -325,13 +331,23 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-
     private void addItem() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        // Use MaterialAlertDialogBuilder for proper theming
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this);
         builder.setTitle("Lisää uusi kohde");
 
         final EditText input = new EditText(this);
         input.setHint("Anna kohteen nimi");
+
+        // Style the EditText for better contrast in both themes
+        int padding = getResources().getDimensionPixelSize(R.dimen.dialog_padding);
+        input.setPadding(padding, padding, padding, padding);
+        input.setBackgroundResource(R.drawable.edittext_background); // Optional: Add a custom background if needed.
+
+        // Use a style-aware hint text color
+        input.setHintTextColor(ContextCompat.getColor(this, R.color.hintTextColor));
+        input.setTextColor(ContextCompat.getColor(this, R.color.textColorPrimary2));
+
         builder.setView(input);
 
         builder.setPositiveButton("Lisää", (dialog, which) -> {
@@ -356,7 +372,6 @@ public class MainActivity extends AppCompatActivity {
 
         builder.show();
     }
-
 
     public void toggleTimer(String itemName) {
         if (isRunning.containsKey(itemName) && timers.containsKey(itemName)) {
@@ -456,11 +471,21 @@ public class MainActivity extends AppCompatActivity {
 
 
     public void editItem(String itemName) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        // Use MaterialAlertDialogBuilder for proper theming
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this);
         builder.setTitle("Muokkaa kohteen nimeä");
 
         final EditText input = new EditText(this);
         input.setText(itemName);
+
+        // Style the EditText for better contrast in both themes
+        int padding = getResources().getDimensionPixelSize(R.dimen.dialog_padding);
+        input.setPadding(padding, padding, padding, padding);
+        input.setBackgroundResource(R.drawable.edittext_background);
+        input.setHint("Anna uusi nimi");
+        input.setHintTextColor(ContextCompat.getColor(this, R.color.hintTextColor));
+        input.setTextColor(ContextCompat.getColor(this, R.color.textColorPrimary2));
+
         builder.setView(input);
 
         builder.setPositiveButton("Tallenna", (dialog, which) -> {
@@ -528,51 +553,38 @@ public class MainActivity extends AppCompatActivity {
                 durationHours = Math.round((durationMinutes / 60.0) * 100.0) / 100.0;
             }
 
-            // Separate "Aloitus" and "Lopetus" time values and color
             SpannableString startEndTimes = new SpannableString("Aloitus: " + startTime + " | Lopetus: " + endTime);
-
-            // "Aloitus:" color
             startEndTimes.setSpan(
                     new ForegroundColorSpan(ContextCompat.getColor(this, R.color.startTimeColor)),
                     0, "Aloitus: ".length(),
                     Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
             );
-
-            // "startTime" number color
             startEndTimes.setSpan(
-                    new ForegroundColorSpan(ContextCompat.getColor(this, R.color.startTimeBgColor)), // Numeric color (example green)
+                    new ForegroundColorSpan(ContextCompat.getColor(this, R.color.startTimeBgColor)),
                     "Aloitus: ".length(), "Aloitus: ".length() + startTime.length(),
                     Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
             );
-
-            // "| Lopetus:" color
             startEndTimes.setSpan(
                     new ForegroundColorSpan(ContextCompat.getColor(this, R.color.endTimeColor)),
                     "Aloitus: ".length() + startTime.length() + 3, "Aloitus: ".length() + startTime.length() + 3 + "| Lopetus: ".length(),
                     Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
             );
-
-            // "endTime" number color
             startEndTimes.setSpan(
-                    new ForegroundColorSpan(ContextCompat.getColor(this, R.color.endTimeBgColor)), // Numeric color (example red)
+                    new ForegroundColorSpan(ContextCompat.getColor(this, R.color.endTimeBgColor)),
                     "Aloitus: ".length() + startTime.length() + "| Lopetus: ".length(), startEndTimes.length(),
                     Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
             );
 
             SpannableString runningIndicator = new SpannableString(isTaskRunning ? " ⏳" : "");
 
-            // Prepare duration text with numeric values included
             String durationText = "Kesto: " + durationMinutes + " minuuttia, " + String.format("%.2f", durationHours) + " tuntia";
             SpannableString durationSpannable = new SpannableString(durationText);
-
-            // Color "Kesto:"
             durationSpannable.setSpan(
                     new ForegroundColorSpan(ContextCompat.getColor(this, R.color.kestoColor)),
                     0, "Kesto: ".length(),
                     Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
             );
 
-            // Color "minuuttia"
             int minutesStart = durationText.indexOf("minuuttia");
             durationSpannable.setSpan(
                     new ForegroundColorSpan(ContextCompat.getColor(this, R.color.kestoColor)),
@@ -580,7 +592,6 @@ public class MainActivity extends AppCompatActivity {
                     Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
             );
 
-            // Color "tuntia"
             int hoursStart = durationText.indexOf("tuntia");
             durationSpannable.setSpan(
                     new ForegroundColorSpan(ContextCompat.getColor(this, R.color.kestoColor)),
@@ -588,23 +599,20 @@ public class MainActivity extends AppCompatActivity {
                     Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
             );
 
-            // Color the numeric values (durationMinutes and durationHours)
-            // Color durationMinutes (number of minutes)
             String minutesValue = String.valueOf(durationMinutes);
             int minutesValueStart = durationText.indexOf(minutesValue);
             int minutesValueEnd = minutesValueStart + minutesValue.length();
             durationSpannable.setSpan(
-                    new ForegroundColorSpan(ContextCompat.getColor(this, R.color.buttonColorPrimary)), // Custom color for the minutes
+                    new ForegroundColorSpan(ContextCompat.getColor(this, R.color.minutesColor)), // Custom color for minutes
                     minutesValueStart, minutesValueEnd,
                     Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
             );
 
-            // Color durationHours (number of hours)
             String hoursValue = String.format("%.2f", durationHours);
             int hoursValueStart = durationText.indexOf(hoursValue);
             int hoursValueEnd = hoursValueStart + hoursValue.length();
             durationSpannable.setSpan(
-                    new ForegroundColorSpan(ContextCompat.getColor(this, R.color.buttonColorPrimary)), // Custom color for the hours
+                    new ForegroundColorSpan(ContextCompat.getColor(this, R.color.hoursColor)), // Custom color for hours
                     hoursValueStart, hoursValueEnd,
                     Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
             );
@@ -616,12 +624,26 @@ public class MainActivity extends AppCompatActivity {
                     Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
             );
 
-            displayText.append(name).append("\n")
+            SpannableString nameSpannable = new SpannableString(name);
+            nameSpannable.setSpan(new ClickableSpan() {
+                @Override
+                public void onClick(View widget) {
+                    String textToCopy = name.length() > 6 ? name.substring(0, 6) : name;
+                    ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                    ClipData clip = ClipData.newPlainText("Copied Text", textToCopy);
+                    clipboard.setPrimaryClip(clip);
+                    Toast.makeText(widget.getContext(), "Copied: " + textToCopy, Toast.LENGTH_SHORT).show();
+                }
+            }, 0, name.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+
+            displayText.append(nameSpannable).append("\n")
                     .append(startEndTimes).append(runningIndicator).append("\n")
                     .append(durationSpannable).append("\n")
                     .append(separatorLine).append("\n");
         }
+
         timeDisplay.setText(displayText);
+        timeDisplay.setMovementMethod(LinkMovementMethod.getInstance()); // Enable clickable spans
     }
 
     public void confirmSaveTimeDisplayToFile() {
@@ -861,6 +883,7 @@ public class MainActivity extends AppCompatActivity {
             inputStream.close();
             runOnUiThread(() -> itemAdapter.notifyDataSetChanged());
             hasImportedFile = true;
+            updateTimeDisplay();
 
         } catch (Exception e) {
             Log.e("ImportError", "Virhe tiedostoa tuodessa!", e);
@@ -951,7 +974,6 @@ public class MainActivity extends AppCompatActivity {
                 .show();
     }
 
-
     private void loadInternalFile(String fileName) {
         try {
             FileInputStream inputStream = openFileInput(fileName);
@@ -1029,11 +1051,10 @@ public class MainActivity extends AppCompatActivity {
             runOnUiThread(() -> itemAdapter.notifyDataSetChanged());
 
             hasImportedFile = true;
+            updateTimeDisplay();
 
         } catch (IOException e) {
             Log.e("FileLoadError", "Virhe ladatessa sisäistä tiedostoa!", e);
         }
     }
-
-
 }
