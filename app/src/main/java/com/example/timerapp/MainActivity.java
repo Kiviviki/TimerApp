@@ -628,7 +628,7 @@ public class MainActivity extends AppCompatActivity {
             nameSpannable.setSpan(new ClickableSpan() {
                 @Override
                 public void onClick(View widget) {
-                    String textToCopy = name.length() > 6 ? name.substring(0, 6) : name;
+                    String textToCopy = name.length() > 6 ? name.substring(1, 6) : name;
                     ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
                     ClipData clip = ClipData.newPlainText("Copied Text", textToCopy);
                     clipboard.setPrimaryClip(clip);
