@@ -4,19 +4,21 @@
 #53299 Antinkankaantie 35 SVK
 #52736 Kirkkokatu 25 Kukkatalo
 #52729 Länsikalkka 2 TMW
-#52749 Palokunnakatu 7 Pohjantauri
-#50719 Palokunnakatu 9 Maijantauri
-#52751 Palokunnakatu 11 Hakotauri
-#52753 Kauppakatu 1
-#52592 Valjaspolku 1
+#52303 Valjaspolku 1
 #52137 Ratsukatu 5
+#53406 Jerenkuja 2
+#50567 Mettalankatu 3
+#52751 Palokunnakatu 11 Hakotauri
+#50719 Palokunnakatu 9 Maijantauri
+#52749 Palokunnakatu 7 Pohjantauri
+#53410 Hailikatu 1
+#52753 Kauppakatu 1
 #50455 Cortenkatu 2
 #52732 Kauppakatu 36
 #52686 Kellokarinkatu 6
-#50567 Mettalankatu 3
-#51662 Mehtolantie 4
-#53410 Hailikatu 1
-#53406 Jerenkuja 2
+#52742 Vilpunlaakso 14
 #52688 Antinrannatie 7
+#51662 Mehtolantie 4
 #52740 Kesäläntulli 1
+#50713 Kirkkolahdenkatu 31
 #50437 Omatyö
